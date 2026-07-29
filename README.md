@@ -35,7 +35,25 @@ FastAPI → OpenAI API → 문제 생성/채점 결과 반환
 
 ## 6. 실행 방법
 
-추가 예정
+### 1. 환경 변수 설정
+
+`backend/.env` 파일을 생성하고 아래 내용을 입력합니다.
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@db:5432/cs_exam_coach
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### 2. Docker Compose 실행
+
+```bash
+docker compose up --build
+```
+
+### 3. 접속 주소
+
+* Frontend: [http://localhost:8501](http://localhost:8501)
+* Backend API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ## 7. 향후 개선 사항
 

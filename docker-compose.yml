@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16
+    container_name: cs_exam_coach_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: how060507!
+      POSTGRES_DB: cs_exam_coach
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: cs_exam_coach_backend
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: cs_exam_coach_frontend
+    environment:
+      API_BASE_URL: http://backend:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
