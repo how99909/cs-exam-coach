@@ -20,7 +20,7 @@ def grade_answer(
     )
     
     wrong_answer = models.WrongAnswer(
-        question_id=0,
+        question_id=request.question_id,
         user_answer=request.user_answer,
         correct_answer=request.correct_answer,
         concept_tag=result.get("concept_tag") or request.concept_tag,

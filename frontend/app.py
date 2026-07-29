@@ -14,7 +14,7 @@ st.write("컴소 전공 시험 대비 AI 문제 생성 및 오답 복습 서비�
 
 subject = st.selectbox(
     "과목을 선택하세요",
-    ["알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍"],
+    ["알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "운영체제"],
 )
 
 question_type = st.selectbox(
@@ -78,6 +78,7 @@ if st.session_state.questions:
             response = requests.post(
                 f"{API_BASE_URL}/grading/grade",
                 json={
+                    "question_id": question["question_id"],
                     "question_text": question["question_text"],
                     "correct_answer": question["answer"],
                     "user_answer": user_answer,

@@ -22,6 +22,7 @@ class QuestionResponse(BaseModel):
 
 
 class GradeRequest(BaseModel):
+    question_id: int
     question_text: str
     correct_answer: str
     user_answer: str
