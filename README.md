@@ -18,15 +18,29 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 사용자 답안 채점
 - 오답 개념 저장
 - 오답 빈도 기반 복습 추천
+- Streamlit 기반 웹 UI
+- Docker Compose 기반 실행 환경 구성
 
 ## 4. 기술 스택
 
-- Frontend: Streamlit
-- Backend: FastAPI
-- Database: PostgreSQL
-- ORM: SQLAlchemy
-- AI: OpenAI API
-- Deployment: Docker, AWS EC2 예정
+### Frontend
+- Streamlit
+- Requests
+
+### Backend
+- FastAPI
+- Pydantic
+- SQLAlchemy
+
+### Database
+- PostgreSQL
+
+### AI
+- OpenAI API
+
+### Infra
+- Docker
+- Docker Compose
 
 ## 5. 시스템 구조
 
