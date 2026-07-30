@@ -44,14 +44,108 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 
 ## 5. 시스템 구조
 
-사용자 → Streamlit → FastAPI → PostgreSQL  
-FastAPI → OpenAI API → 문제 생성/채점 결과 반환
+사용자는 Streamlit 화면에서 공부 내용을 입력합니다.  
+Frontend는 FastAPI 서버에 문제 생성을 요청합니다.  
+FastAPI는 AI API를 호출해 문제와 정답, 해설, 개념 태그를 생성합니다.  
+생성된 문제와 사용자의 오답 기록은 PostgreSQL에 저장됩니다.  
+복습 추천 API는 오답 개념 빈도를 집계하여 우선 복습할 개념을 반환합니다.
 
-## 6. 실행 방법
+```text
+User
+ ↓
+Streamlit Frontend
+ ↓
+FastAPI Backend
+ ↓
+PostgreSQL
+
+FastAPI Backend
+ ↓
+OpenAI API
+```
+
+## 6. 주요 API
+
+### 1. 문제 생성 API
+
+`POST /questions/generate`
+
+#### Request
+
+```json
+{
+  "subject": "운영체제",
+  "content": "프로세스는 실행 중인 프로그램이다...",
+  "question_type": "short_answer",
+  "count": 5
+}
+```
+
+#### Response
+
+```json
+{
+  "material_id": 1,
+  "questions": [
+    {
+      "id": 1,
+      "question_text": "프로세스와 스레드의 차이를 설명하시오.",
+      "answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
+      "explanation": "스레드는 같은 프로세스의 메모리 공간을 공유한다.",
+      "concept_tag": "프로세스와 스레드",
+      "question_type": "short_answer"
+    }
+  ]
+}
+```
+
+### 2. 채점 API
+
+`POST /grading/grade`
+
+#### Request
+
+```json
+{
+  "question_id": 1,
+  "question_text": "프로세스와 스레드의 차이를 설명하시오.",
+  "correct_answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
+  "user_answer": "프로세스와 스레드는 같은 개념이다.",
+  "concept_tag": "프로세스와 스레드"
+}
+```
+
+#### Response
+
+```json
+{
+  "is_correct": false,
+  "feedback": "프로세스와 스레드를 같은 개념으로 설명한 점이 틀렸습니다. 스레드는 프로세스 내부에서 실행되며 자원을 공유합니다.",
+  "concept_tag": "프로세스와 스레드"
+}
+```
+
+### 3. 복습 추천 API
+
+`GET /review/recommendations`
+
+#### Response
+
+```json
+[
+  {
+    "concept_tag": "프로세스와 스레드",
+    "wrong_count": 3,
+    "recommendation": "프로세스와 스레드 개념을 우선 복습하세요."
+  }
+]
+```
+
+## 7. 실행 방법
 
 ### 1. 환경 변수 설정
 
-`backend/.env` 파일을 생성하고 아래 내용을 입력합니다.
+`backend/.env` 파일을 생성합니다.
 
 ```env
 DATABASE_URL=postgresql://postgres:postgres@db:5432/cs_exam_coach
@@ -66,14 +160,47 @@ docker compose up --build
 
 ### 3. 접속 주소
 
-* Frontend: [http://localhost:8501](http://localhost:8501)
-* Backend API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+```text
+Frontend: http://localhost:8501
+Backend API Docs: http://localhost:8000/docs
+```
 
-## 7. 향후 개선 사항
+## 8. 시연 흐름
 
-- PDF 업로드 기능
-- RAG 기반 강의자료 질의응답
-- 로그인 기능
-- 과목별 학습 통계
-- 시험 D-Day 기반 복습 계획
-- 학회/스터디 그룹 기능
+1. 과목을 선택합니다.
+2. 공부 내용을 입력합니다.
+3. 문제 유형과 문제 개수를 선택합니다.
+4. AI가 시험 대비 문제를 생성합니다.
+5. 사용자가 답안을 입력합니다.
+6. AI가 답안을 채점하고 피드백을 제공합니다.
+7. 오답 개념이 저장됩니다.
+8. 복습 추천 화면에서 많이 틀린 개념을 확인합니다.
+
+## 9. 시연 화면
+
+### 메인 화면
+
+![메인 화면](docs/images/main.png)
+
+### 문제 생성
+
+![문제 생성](docs/images/question-generation.png)
+
+### 채점 결과
+
+![채점 결과](docs/images/grading-result.png)
+
+### 복습 추천
+
+![복습 추천](docs/images/review-recommendation.png)
+
+## 10. 향후 개선 사항
+
+* PDF 업로드 기능
+* RAG 기반 강의자료 질의응답
+* 로그인 및 사용자별 학습 기록
+* 과목별 학습 통계
+* 시험 D-Day 기반 복습 계획
+* 문제 난이도 자동 조절
+* 스터디 그룹 공유 기능
+* AWS EC2 배포

@@ -76,10 +76,16 @@ if st.session_state.questions:
             st.write(question["explanation"])
         
         if st.button(f"답안 제출하기 (문제 {idx})"):
+            question_id = question.get("question_id", question.get("id"))
+
+            if question_id is None:
+                st.error("문제 ID를 찾을 수 없습니다. 문제를 다시 생성해 주세요.")
+                st.stop()
+
             response = requests.post(
                 f"{API_BASE_URL}/grading/grade",
                 json={
-                    "question_id": question["question_id"],
+                    "question_id": question_id,
                     "question_text": question["question_text"],
                     "correct_answer": question["answer"],
                     "user_answer": user_answer,

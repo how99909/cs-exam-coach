@@ -45,7 +45,7 @@ def generate_questions(
         
         saved_questions.append(
             {
-                "id": question.id,
+                "question_id": question.id,
                 "question_text": question.question_text,
                 "answer": question.answer,
                 "explanation": question.explanation,

@@ -130,6 +130,7 @@ celerybeat.pid
 # Environments
 .env
 .env.local
+backend/.env
 .venv/
 env/
 venv/
@@ -188,3 +189,5 @@ cython_debug/
 .DS_Store
 
 *.db
+
+postgres_data/
