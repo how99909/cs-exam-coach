@@ -20,6 +20,9 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 오답 빈도 기반 복습 추천
 - Streamlit 기반 웹 UI
 - Docker Compose 기반 실행 환경 구성
+- 최근 생성 문제 조회
+- 최근 오답 기록 조회
+- 학습 기록 기반 복습 관리
 
 ## 4. 기술 스택
 
@@ -137,6 +140,48 @@ OpenAI API
     "concept_tag": "프로세스와 스레드",
     "wrong_count": 3,
     "recommendation": "프로세스와 스레드 개념을 우선 복습하세요."
+  }
+]
+```
+
+### 4. 최근 생성 문제 조회 API
+
+`GET /history/questions`
+
+#### Response
+
+```json
+[
+  {
+    "id": 12,
+    "material_id": 3,
+    "question_text": "프로세스와 스레드의 차이를 설명하시오.",
+    "answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
+    "explanation": "같은 프로세스의 스레드는 메모리 공간과 자원을 공유한다.",
+    "concept_tag": "프로세스와 스레드",
+    "question_type": "short_answer",
+    "created_at": "2026-07-30T17:45:12.123456"
+  }
+]
+```
+
+### 5. 최근 오답 기록 조회 API
+
+`GET /history/wrong-answers`
+
+#### Response
+
+```json
+[
+  {
+    "id": 8,
+    "question_id": 12,
+    "user_answer": "프로세스와 스레드는 같은 개념이다.",
+    "correct_answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
+    "concept_tag": "프로세스와 스레드",
+    "feedback": "스레드는 프로세스 내부에서 실행되며 같은 프로세스의 자원을 공유합니다.",
+    "is_correct": false,
+    "created_at": "2026-07-30T17:48:31.654321"
   }
 ]
 ```

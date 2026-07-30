@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import questions, grading, review
+from app.routers import questions, grading, review, history
 from app.database import engine, Base
 
 Base.metadata.create_all(bind=engine)
@@ -14,6 +14,7 @@ app = FastAPI(
 app.include_router(questions.router)
 app.include_router(grading.router)
 app.include_router(review.router)
+app.include_router(history.router)
 
 @app.get("/")
 def root():
