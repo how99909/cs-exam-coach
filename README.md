@@ -24,10 +24,6 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 최근 오답 기록 조회
 - 학습 기록 기반 복습 관리
 - 문제 난이도 선택
-  - easy
-  - medium
-  - hard
-  - exam_like
 
 ## 4. 기술 스택
 
