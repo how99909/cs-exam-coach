@@ -19,12 +19,17 @@ with tab1:
     st.header("문제 생성")
     subject = st.selectbox(
         "과목을 선택하세요",
-        ["알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "운영체제"],
+        ["알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍"],
     )
 
     question_type = st.selectbox(
         "문제 유형을 선택하세요",
         ["short_answer", "multiple_choice", "coding", "true_false", "fill_in_the_blank", "essay"],
+    )
+    
+    difficulty = st.selectbox(
+        "난이도를 선택하세요",
+        ["easy", "medium", "hard", "exam_like"],
     )
 
     count = st.slider("생성할 문제 수", min_value=1, max_value=10, value=5)
@@ -49,6 +54,7 @@ with tab1:
                     "content": content,
                     "question_type": question_type,
                     "count": count,
+                    "difficulty": difficulty,
                 },
                 timeout=60,
             )

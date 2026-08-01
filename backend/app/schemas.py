@@ -11,6 +11,7 @@ class QuestionGenerateRequest(BaseModel):
     content: str
     question_type: str = "short_answer"
     count: int = 5
+    difficulty: str = "medium"
     
     
 class QuestionResponse(BaseModel):

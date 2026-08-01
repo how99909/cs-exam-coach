@@ -25,6 +25,7 @@ def generate_questions(
         content=request.content,
         question_type=request.question_type,
         count=request.count,
+        difficulty=request.difficulty,
     )
     
     saved_questions = []
