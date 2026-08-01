@@ -12,6 +12,7 @@ def generate_questions(
     db: Session = Depends(get_db),
 ):
     material = models.StudyMaterial(
+        user_name=request.user_name,
         subject=request.subject,
         content=request.content,
     )
@@ -56,6 +57,7 @@ def generate_questions(
         )
         
     return {
+        "user_name": request.user_name,
         "material_id": material.id,
         "questions": saved_questions,
     }

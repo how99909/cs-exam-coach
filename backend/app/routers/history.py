@@ -8,9 +8,17 @@ router = APIRouter(prefix="/history", tags=["history"])
 
 
 @router.get("/questions")
-def get_recent_questions(db: Session = Depends(get_db)):
+def get_recent_questions(
+    user_name: str = "default_user",
+    db: Session = Depends(get_db),
+):
     questions = (
-        db.query(models.Question)
+        db.query(models.Question, models.StudyMaterial)
+        .join(
+            models.StudyMaterial, 
+            models.Question.material_id == models.StudyMaterial.id,
+        )
+        .filter(models.StudyMaterial.user_name == user_name)
         .order_by(models.Question.created_at.desc())
         .limit(20)
         .all()
@@ -19,7 +27,9 @@ def get_recent_questions(db: Session = Depends(get_db)):
     return [
         {
             "id": question.id,
+            "user_name": material.user_name,
             "material_id": question.material_id,
+            "subject": material.subject,
             "question_text": question.question_text,
             "answer": question.answer,
             "explanation": question.explanation,
@@ -27,14 +37,18 @@ def get_recent_questions(db: Session = Depends(get_db)):
             "question_type": question.question_type,
             "created_at": question.created_at,
         }
-        for question in questions
+        for question, material in questions
     ]
     
     
 @router.get("/wrong-answers")
-def get_recent_wrong_answers(db: Session = Depends(get_db)):
+def get_recent_wrong_answers(
+    user_name: str = "default_user",
+    db: Session = Depends(get_db)
+):
     wrong_answers = (
         db.query(models.WrongAnswer)
+        .filter(models.WrongAnswer.user_name == user_name)
         .order_by(models.WrongAnswer.created_at.desc())
         .limit(20)
         .all()
@@ -43,6 +57,7 @@ def get_recent_wrong_answers(db: Session = Depends(get_db)):
     return [
         {
             "id": wrong_answer.id,
+            "user_name": wrong_answer.user_name,
             "question_id": wrong_answer.question_id,
             "user_answer": wrong_answer.user_answer,
             "correct_answer": wrong_answer.correct_answer,

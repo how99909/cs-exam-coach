@@ -9,6 +9,7 @@ router = APIRouter(prefix="/materials", tags=["materials"])
 
 @router.post("/extract-pdf")
 async def extract_pdf_text(
+    user_name: str = Form("default_user"),
     subject: str = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -46,6 +47,7 @@ async def extract_pdf_text(
             }
             
         material = models.StudyMaterial(
+            user_name=user_name,
             subject=subject,
             content=full_text,
         )
@@ -56,6 +58,7 @@ async def extract_pdf_text(
         
         return {
             "success": True,
+            "user_name": user_name,
             "material_id": material.id,
             "subject": subject,
             "filename": file.filename,

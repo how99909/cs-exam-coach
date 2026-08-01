@@ -8,6 +8,7 @@ class StudyMaterial(Base):
     __tablename__ = "study_materials"
     
     id = Column(Integer, primary_key=True, index=True)
+    user_name = Column(String(100), nullable=False, default="default_user")
     subject = Column(String(100), nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -30,6 +31,7 @@ class WrongAnswer(Base):
     __tablename__ = "wrong_answers"
     
     id = Column(Integer, primary_key=True, index=True)
+    user_name = Column(String(100), nullable=False, default="default_user")
     question_id = Column(Integer, nullable=False)
     user_answer = Column(Text, nullable=False)
     correct_answer = Column(Text, nullable=False)

@@ -20,6 +20,7 @@ def grade_answer(
     )
     
     wrong_answer = models.WrongAnswer(
+        user_name=request.user_name,
         question_id=request.question_id,
         user_answer=request.user_answer,
         correct_answer=request.correct_answer,

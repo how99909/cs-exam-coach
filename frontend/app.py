@@ -13,6 +13,17 @@ st.set_page_config(
 st.title("📚 CS Exam Coach")
 st.write("컴소 전공 시험 대비 AI 문제 생성 및 오답 복습 서비스")
 
+if "user_name" not in st.session_state:
+    st.session_state.user_name = "default_user"
+    
+user_name = st.text_input(
+    "사용자 이름", 
+    value=st.session_state.user_name,
+    help="사용자 이름은 학습 기록과 오답 복습 추천에 사용됩니다.",
+)
+
+st.session_state.user_name = user_name.strip() or "default_user"
+
 tab1, tab2, tab3, tab4 = st.tabs(["문제 생성", "PDF 업로드", "복습 추천", "학습 기록"])
 
 with tab1:
@@ -50,6 +61,7 @@ with tab1:
             response = requests.post(
                 f"{API_BASE_URL}/questions/generate", 
                 json={
+                    "user_name": st.session_state.user_name,
                     "subject": subject,
                     "content": content,
                     "question_type": question_type,
@@ -95,6 +107,7 @@ with tab1:
                 response = requests.post(
                     f"{API_BASE_URL}/grading/grade",
                     json={
+                        "user_name": st.session_state.user_name,
                         "question_id": question_id,
                         "question_text": question["question_text"],
                         "correct_answer": question["answer"],
@@ -149,6 +162,7 @@ with tab2:
             }
             
             data = {
+                "user_name": st.session_state.user_name,
                 "subject": pdf_subject,
             }
             
@@ -212,6 +226,7 @@ with tab2:
             response = requests.post(
                 f"{API_BASE_URL}/questions/generate", 
                 json={
+                    "user_name": st.session_state.user_name,
                     "subject": pdf_subject,
                     "content": st.session_state.pdf_extracted_text,
                     "question_type": pdf_question_type,
@@ -236,6 +251,7 @@ with tab3:
     if st.button("오답 복습 추천 받기"):
         response = requests.get(
             f"{API_BASE_URL}/review/recommendations", 
+            params={"user_name": st.session_state.user_name},
             timeout=30,
         )
         
@@ -259,6 +275,7 @@ with tab4:
     if st.button("최근 생성 문제 불러오기"):
         response = requests.get(
             f"{API_BASE_URL}/history/questions", 
+            params={"user_name": st.session_state.user_name},
             timeout=30,
         )
         
@@ -286,6 +303,7 @@ with tab4:
     if st.button("최근 오답 기록 불러오기"):
         response = requests.get(
             f"{API_BASE_URL}/history/wrong-answers", 
+            params={"user_name": st.session_state.user_name},
             timeout=30,
         )
         

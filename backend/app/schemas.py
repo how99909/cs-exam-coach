@@ -7,6 +7,7 @@ class MaterialCreate(BaseModel):
     
     
 class QuestionGenerateRequest(BaseModel):
+    user_name: str = "default_user"
     subject: str
     content: str
     question_type: str = "short_answer"
@@ -24,6 +25,7 @@ class QuestionResponse(BaseModel):
 
 
 class GradeRequest(BaseModel):
+    user_name: str = "default_user"
     question_id: int
     question_text: str
     correct_answer: str
