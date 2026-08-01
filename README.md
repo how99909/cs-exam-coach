@@ -24,6 +24,16 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 최근 오답 기록 조회
 - 학습 기록 기반 복습 관리
 - 문제 난이도 선택
+- PDF 강의자료 업로드
+- PDF 텍스트 추출
+- 추출된 PDF 내용 기반 문제 생성
+
+```markdown
+## 제한사항
+
+- 현재 PDF 업로드 기능은 텍스트 기반 PDF를 대상으로 합니다.
+- 스캔본 PDF는 OCR을 지원하지 않아 텍스트 추출이 제한될 수 있습니다.
+- 긴 PDF는 AI API 입력 길이 제한으로 인해 일부 내용만 사용하는 방식으로 개선할 예정입니다.
 
 ## 4. 기술 스택
 
@@ -186,6 +196,29 @@ OpenAI API
   }
 ]
 ```
+
+### 6. PDF 텍스트 추출 API
+
+`POST /materials/extract-pdf`
+
+#### Request
+
+- `subject`: 과목명
+- `file`: PDF 파일
+
+#### Response
+
+```json
+{
+  "success": true,
+  "material_id": 1,
+  "subject": "운영체제",
+  "filename": "os_chapter1.pdf",
+  "page_count": 5,
+  "text_length": 8432,
+  "preview": "운영체제란...",
+  "content": "전체 추출 텍스트"
+}
 
 ## 7. 실행 방법
 

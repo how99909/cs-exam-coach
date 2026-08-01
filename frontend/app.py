@@ -13,7 +13,7 @@ st.set_page_config(
 st.title("📚 CS Exam Coach")
 st.write("컴소 전공 시험 대비 AI 문제 생성 및 오답 복습 서비스")
 
-tab1, tab2, tab3 = st.tabs(["문제 생성", "복습 추천", "학습 기록"])
+tab1, tab2, tab3, tab4 = st.tabs(["문제 생성", "PDF 업로드", "복습 추천", "학습 기록"])
 
 with tab1:
     st.header("문제 생성")
@@ -118,8 +118,119 @@ with tab1:
                     st.write(response.text)
                     
     st.divider()
-
+    
 with tab2:
+    st.header("PDF 자료 업로드")
+    
+    pdf_subject = st.selectbox(
+        "PDF 자료의 과목을 선택하세요",
+        ["알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍"],
+        key="pdf_subject",
+    )
+    
+    uploaded_file = st.file_uploader(
+        "PDF 강의자료를 업로드하세요",
+        type=["pdf"],
+    )
+    
+    if "pdf_extracted_text" not in st.session_state:
+        st.session_state.pdf_extracted_text = ""
+        
+    if st.button("PDF 텍스트 추출하기"):
+        if uploaded_file is None:
+            st.warning("PDF 파일을 업로드해주세요.")
+        else:
+            files = {
+                "file": (
+                    uploaded_file.name, 
+                    uploaded_file.getvalue(), 
+                    "application/pdf"
+                )
+            }
+            
+            data = {
+                "subject": pdf_subject,
+            }
+            
+            response = requests.post(
+                f"{API_BASE_URL}/materials/extract-pdf",
+                data=data,
+                files=files,
+                timeout=120,
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                if result.get("success"):
+                    st.session_state.pdf_extracted_text = result["content"]
+                    st.success("PDF 텍스트 추출이 완료되었습니다.")
+                    
+                    st.write(f"페이지 수: {result['page_count']}")
+                    st.write(f"추출된 텍스트 길이: {result['text_length']}자")
+                    
+                    st.subheader("미리보기")
+                    st.text_area(
+                        "추출 텍스트", 
+                        value=result["preview"],
+                        height=300,
+                    )
+                else:
+                    st.error(result.get("message", "PDF 텍스트 추출에 실패했습니다."))
+            else:
+                st.error("PDF 업로드 요청에 실패했습니다.")
+                st.write(response.text)
+                
+    st.divider()
+    
+    st.subheader("PDF 기반 문제 생성")
+    
+    pdf_question_type = st.selectbox(
+        "문제 유형을 선택하세요",
+        ["short_answer", "multiple_choice", "coding", "true_false", "fill_in_the_blank", "essay"],
+        key="pdf_question_type",
+    )
+    
+    pdf_difficulty = st.selectbox(
+        "난이도를 선택하세요",
+        ["easy", "medium", "hard", "exam_like"],
+        key="pdf_difficulty",
+    )
+    
+    pdf_count = st.slider(
+        "생성할 문제 수", 
+        min_value=1, 
+        max_value=10, 
+        value=5,
+        key="pdf_count",
+    )
+    
+    if st.button("PDF 내용으로 문제 생성하기"):
+        if not st.session_state.pdf_extracted_text.strip():
+            st.warning("먼저 PDF 텍스트를 추출해주세요.")
+        else:
+            response = requests.post(
+                f"{API_BASE_URL}/questions/generate", 
+                json={
+                    "subject": pdf_subject,
+                    "content": st.session_state.pdf_extracted_text,
+                    "question_type": pdf_question_type,
+                    "count": pdf_count,
+                    "difficulty": pdf_difficulty,
+                },
+                timeout=120,
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                st.session_state.questions = data["questions"]
+                st.success("PDF 기반 문제가 생성되었습니다.")
+                st.info("문제 생성 탭에서 생성된 문제를 확인하고 답안을 제출할 수 있습니다.")
+            else:
+                st.error("PDF 기반 문제 생성에 실패했습니다.")
+                st.write(response.text)
+
+with tab3:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -142,7 +253,7 @@ with tab2:
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab3:
+with tab4:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
