@@ -5,5 +5,3 @@ psycopg2-binary
 python-dotenv
 openai
 pydantic
-pypdf
-python-multipart
