@@ -24,7 +24,7 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4 = st.tabs(["문제 생성", "PDF 업로드", "복습 추천", "학습 기록"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["문제 생성", "PDF 업로드", "복습 추천", "학습 기록", "시험 계획"])
 
 with tab1:
     st.header("문제 생성")
@@ -327,3 +327,56 @@ with tab4:
                         st.caption(f"오답 기록 시간: {wrong_answer['created_at']}")
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
+            
+with tab5:
+    st.header("시험 D-Day 계획")
+    
+    exam_date = st.date_input(
+        "시험 날짜를 선택하세요",
+        help="시험 날짜를 선택하면 남은 일수와 학습 계획을 확인할 수 있습니다.",
+    )
+    
+    if st.button("복습 계획 생성하기"):
+        response = requests.get(
+            f"{API_BASE_URL}/review/study-plan", 
+            params={
+                "user_name": st.session_state.user_name,
+                "exam_date": exam_date.strftime("%Y-%m-%d"),
+            },
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            if not result.get("success"):
+                st.error(result.get("message", "복습 계획 생성에 실패했습니다."))
+            else:
+                st.success(
+                    f"시험까지 {result['days_left']}일 남았습니다."
+                )
+                
+                if not result.get("plan"):
+                    st.info(result.get("message", "아직 복습 계획이 없습니다."))
+                else:
+                    st.subheader("약점 개념")
+                    
+                    for concept in result["weak_concepts"]:
+                        st.write(
+                            f"- **{concept['concept_tag']}**: "
+                            f"{concept['wrong_count']}회 오답"
+                        )
+                        
+                    st.subheader("추천 복습 계획")
+                    
+                    for item in result["plan"]:
+                        with st.expander(item["day"]):
+                            st.write(item["task"])
+                            
+                            if item["concepts"]:
+                                st.write("복습 개념")
+                                for concept in item["concepts"]:
+                                    st.write(f"- {concept}")
+        else:
+            st.error("복습 계획 요청에 실패했습니다.")
+            st.write(response.text)

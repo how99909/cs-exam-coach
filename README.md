@@ -34,6 +34,8 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 사용자별 오답 저장
 - 사용자별 복습 추천
 - 사용자별 학습 기록 조회
+- 시험 D-Day 기반 복습 계획 생성
+- 사용자별 오답 개념을 바탕으로 복습 일정 추천
 
 ## 4. 제한사항
 
@@ -43,6 +45,7 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 현재 사용자 구분은 로그인 방식이 아니라 사용자 이름 입력 방식으로 동작합니다.
 - 동일한 사용자 이름을 입력하면 같은 학습 기록을 조회할 수 있습니다.
 - 실제 서비스에서는 회원가입/로그인 및 인증 기능이 필요합니다.
+- 시험 복습 계획은 오답 빈도를 기준으로 한 규칙 기반 추천이며, 실제 학습 효과를 보장하지 않습니다.
 
 ## 5. 기술 스택
 
@@ -93,6 +96,12 @@ OpenAI API
 
 `POST /questions/generate`
 
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
+
 #### Request
 
 ```json
@@ -126,6 +135,12 @@ OpenAI API
 
 `POST /grading/grade`
 
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
+
 #### Request
 
 ```json
@@ -152,6 +167,12 @@ OpenAI API
 
 `GET /review/recommendations`
 
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
+
 #### Response
 
 ```json
@@ -167,6 +188,12 @@ OpenAI API
 ### 4. 최근 생성 문제 조회 API
 
 `GET /history/questions`
+
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
 
 #### Response
 
@@ -188,6 +215,12 @@ OpenAI API
 ### 5. 최근 오답 기록 조회 API
 
 `GET /history/wrong-answers`
+
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
 
 #### Response
 
@@ -228,6 +261,42 @@ OpenAI API
   "preview": "운영체제란...",
   "content": "전체 추출 텍스트"
 }
+```
+
+### 7. 시험 D-Day 복습 계획 API
+
+`GET /review/study-plan`
+
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
+| exam_date | 시험 날짜, YYYY-MM-DD 형식 |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "user_name": "user_a",
+  "exam_date": "2026-08-15",
+  "days_left": 14,
+  "weak_concepts": [
+    {
+      "concept_tag": "프로세스와 스레드",
+      "wrong_count": 3
+    }
+  ],
+  "plan": [
+    {
+      "day": "D-14 ~ D-8",
+      "task": "오답 빈도가 높은 개념부터 차근차근 복습하고, 관련 개념을 다시 정리하세요.",
+      "concepts": ["프로세스와 스레드"]
+    }
+  ]
+}
+```
 
 ## 7. 실행 방법
 
