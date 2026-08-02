@@ -11,6 +11,8 @@ router = APIRouter(prefix="/materials", tags=["materials"])
 async def extract_pdf_text(
     user_name: str = Form("default_user"),
     subject: str = Form(...),
+    start_page: int | None = Form(None),
+    end_page: int | None = Form(None),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
@@ -22,9 +24,30 @@ async def extract_pdf_text(
     
     try:
         reader = PdfReader(file.file)
+        total_pages = len(reader.pages)
+        
+        if start_page is None:
+            start_page = 1
+            
+        if end_page is None:
+            end_page = total_pages
+            
+        if start_page < 1:
+            return {
+                "success": False,
+                "message": "시작 페이지는 1 이상이어야 합니다.",
+            }
+            
+        if end_page > total_pages:
+            return {
+                "success": False,
+                "message": f"끝 페이지는 PDF의 총 페이지 수({total_pages})를 초과할 수 없습니다.",
+            }
+            
         extracted_pages = []
         
-        for page_number, page in enumerate(reader.pages, start=1):
+        for page_number in range(start_page, end_page + 1):
+            page = reader.pages[page_number - 1]
             text = page.extract_text() or ""
             text = text.strip()
             
@@ -63,6 +86,9 @@ async def extract_pdf_text(
             "subject": subject,
             "filename": file.filename,
             "page_count": len(reader.pages),
+            "selected_start_page": start_page,
+            "selected_end_page": end_page,
+            "selected_page_count": end_page - start_page + 1,
             "text_length": len(full_text),
             "preview": full_text[:2000] + ("..." if len(full_text) > 2000 else ""),
             "content": full_text,

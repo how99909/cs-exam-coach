@@ -146,6 +146,22 @@ with tab2:
         type=["pdf"],
     )
     
+    start_page = st.number_input(
+        "시작 페이지 (선택 사항)",
+        min_value=1,
+        value=1,
+        step=1,
+        key="pdf_start_page",
+    )
+    
+    end_page = st.number_input(
+        "끝 페이지 (선택 사항)",
+        min_value=1,
+        value=1,
+        step=1,
+        key="pdf_end_page",
+    )
+    
     if "pdf_extracted_text" not in st.session_state:
         st.session_state.pdf_extracted_text = ""
         
@@ -164,6 +180,8 @@ with tab2:
             data = {
                 "user_name": st.session_state.user_name,
                 "subject": pdf_subject,
+                "start_page": int(start_page),
+                "end_page": int(end_page),
             }
             
             response = requests.post(
@@ -180,7 +198,12 @@ with tab2:
                     st.session_state.pdf_extracted_text = result["content"]
                     st.success("PDF 텍스트 추출이 완료되었습니다.")
                     
-                    st.write(f"페이지 수: {result['page_count']}")
+                    st.write(f"전체 페이지 수: {result['page_count']}")
+                    st.write(
+                        f"선택된 페이지 범위: {result['selected_start_page']} ~ "
+                        f"{result['selected_end_page']} "
+                        f"({result['selected_page_count']}페이지)"
+                    )
                     st.write(f"추출된 텍스트 길이: {result['text_length']}자")
                     
                     st.subheader("미리보기")
