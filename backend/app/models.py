@@ -39,3 +39,17 @@ class WrongAnswer(Base):
     feedback = Column(Text, nullable=True)
     is_correct = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    
+class QuestionFeedback(Base):
+    __tablename__ = "question_feedback"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_name = Column(String(100), nullable=False, default="default_user")
+    question_id = Column(Integer, nullable=False)
+    quality_score = Column(Integer, nullable=False)
+    explanation_score = Column(Integer, nullable=False)
+    exam_relevance_score = Column(Integer, nullable=False)
+    difficulty_match_score = Column(Integer, nullable=False)
+    comment = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

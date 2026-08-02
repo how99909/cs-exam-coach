@@ -24,7 +24,7 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["문제 생성", "PDF 업로드", "복습 추천", "학습 기록", "시험 계획"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["문제 생성", "PDF 업로드", "복습 추천", "학습 기록", "시험 계획", "문제 평가"])
 
 with tab1:
     st.header("문제 생성")
@@ -130,6 +130,72 @@ with tab1:
                     st.error("채점에 실패했습니다.")
                     st.write(response.text)
                     
+            st.markdown("### 문제 평가")
+            
+            quality_score = st.slider(
+                f"문제 {idx}의 문제 품질 점수 (1~5)", 
+                min_value=1, 
+                max_value=5, 
+                value=3,
+                key=f"quality_score_{idx}",
+            )
+            
+            explanation_score = st.slider(
+                f"문제 {idx}의 해설 품질 점수 (1~5)", 
+                min_value=1,
+                max_value=5,
+                value=3,
+                key=f"explanation_score_{idx}",
+            )
+            
+            exam_relevance_score = st.slider(
+                f"문제 {idx}의 시험 적합성 점수 (1~5)",
+                min_value=1,
+                max_value=5,
+                value=3,
+                key=f"exam_relevance_score_{idx}",
+            )
+            
+            difficulty_match_score = st.slider(
+                f"문제 {idx}의 난이도 적합성 점수 (1~5)",
+                min_value=1,
+                max_value=5,
+                value=3,
+                key=f"difficulty_match_score_{idx}",
+            )
+            
+            comment = st.text_area(
+                f"문제 {idx}에 대한 평가 코멘트",
+                key=f"feedback_comment_{idx}",
+                placeholder="문제 품질, 해설, 시험 적합성, 난이도 적합성 등에 대한 코멘트를 작성하세요.",
+            )
+            
+            if st.button(f"문제 평가 제출하기 (문제 {idx})"):
+                response = requests.post(
+                    f"{API_BASE_URL}/feedback/question",
+                    json={
+                        "user_name": st.session_state.user_name,
+                        "question_id": question["question_id"],
+                        "quality_score": quality_score,
+                        "explanation_score": explanation_score,
+                        "exam_relevance_score": exam_relevance_score,
+                        "difficulty_match_score": difficulty_match_score,
+                        "comment": comment,
+                    },
+                    timeout=30,
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    if result.get("success"):
+                        st.success("문제 평가가 저장되었습니다.")
+                    else:
+                        st.error(result.get("message", "문제 평가 저장에 실패했습니다."))
+                else:
+                    st.error("문제 평가 요청에 실패했습니다.")
+                    st.write(response.text)
+                                
     st.divider()
     
 with tab2:
@@ -402,4 +468,29 @@ with tab5:
                                     st.write(f"- {concept}")
         else:
             st.error("복습 계획 요청에 실패했습니다.")
+            st.write(response.text)
+            
+with tab6:
+    st.header("문제 평가 요약")
+    
+    if st.button("내 평가 요약 불러오기"):
+        response = requests.get(
+            f"{API_BASE_URL}/feedback/summary", 
+            params={"user_name": st.session_state.user_name},
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            if result.get("feedback_count", 0) == 0:
+                st.info(result.get("message", "아직 평가 데이터가 없습니다."))
+            else:
+                st.metric("평가 수", result["feedback_count"])
+                st.metric("평균 문제 품질", result['avg_quality_score'])
+                st.metric("평균 해설 품질", result['avg_explanation_score'])
+                st.metric("평균 시험 적합성", result['avg_exam_relevance_score'])
+                st.metric("평균 난이도 적합성", result['avg_difficulty_match_score'])
+        else:
+            st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)

@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v1.6
-주요 업데이트: 사용자가 선택한 페이지 범위만 텍스트 추출해서 문제를 생성 기능 추가
+현재 버전: v1.7
+주요 업데이트: 문제 품질 평가 기능 추가
 
 ## 1. 프로젝트 개요
 
@@ -39,6 +39,11 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - PDF 페이지 범위 선택
 - 선택한 페이지 범위 기반 텍스트 추출
 - 시험 범위 PDF 페이지만 선택하여 문제 생성
+- 문제별 품질 평가
+- 해설 품질 평가
+- 시험 적합도 평가
+- 난이도 적절성 평가
+- 사용자별 문제 평가 요약 조회
 
 ## 4. 제한사항
 
@@ -316,7 +321,55 @@ Form Data:
 }
 ```
 
-## 7. 실행 방법
+### 8. 문제 평가 저장 API
+
+`POST /feedback/question`
+
+#### Request
+
+```json
+{
+  "user_name": "user_a",
+  "question_id": 1,
+  "quality_score": 5,
+  "explanation_score": 4,
+  "exam_relevance_score": 5,
+  "difficulty_match_score": 4,
+  "comment": "시험 대비에 도움이 되는 문제였습니다."
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "문제 평가가 저장되었습니다.",
+  "feedback_id": 1
+}
+```
+
+### 9. 문제 평가 요약 API
+
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
+
+#### Response
+
+```json
+{
+  "feedback_count": 3,
+  "avg_quality_score": 4.67,
+  "avg_explanation_score": 4.33,
+  "avg_exam_relevance_score": 4.67,
+  "avg_difficulty_match_score": 4.0
+}
+```
+
+## 8. 실행 방법
 
 ### 1. 환경 변수 설정
 
@@ -340,7 +393,7 @@ Frontend: http://localhost:8501
 Backend API Docs: http://localhost:8000/docs
 ```
 
-## 8. 시연 흐름
+## 9. 시연 흐름
 
 1. 과목을 선택합니다.
 2. 공부 내용을 입력합니다.
@@ -351,7 +404,7 @@ Backend API Docs: http://localhost:8000/docs
 7. 오답 개념이 저장됩니다.
 8. 복습 추천 화면에서 많이 틀린 개념을 확인합니다.
 
-## 9. 시연 화면
+## 10. 시연 화면
 
 ### 메인 화면
 
@@ -369,7 +422,7 @@ Backend API Docs: http://localhost:8000/docs
 
 ![복습 추천](docs/images/review-recommendation.png)
 
-## 10. 향후 개선 사항
+## 11. 향후 개선 사항
 
 * PDF 업로드 기능
 * RAG 기반 강의자료 질의응답

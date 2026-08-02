@@ -42,3 +42,24 @@ class GradeResponse(BaseModel):
 class ReviewItem(BaseModel):
     concept_tag: str
     wrong_count: int
+
+
+class QuestionFeedbackCreate(BaseModel):
+    user_name: str = "default_user"
+    question_id: int
+    quality_score: int
+    explanation_score: int
+    exam_relevance_score: int
+    difficulty_match_score: int
+    comment: str | None = None
+    
+
+class QuestionFeedbackResponse(BaseModel):
+    id: int
+    user_name: str
+    question_id: int
+    quality_score: int
+    explanation_score: int
+    exam_relevance_score: int
+    difficulty_match_score: int
+    comment: str | None = None
