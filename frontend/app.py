@@ -24,7 +24,9 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["문제 생성", "PDF 업로드", "복습 추천", "학습 기록", "시험 계획", "문제 평가"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
+    ["문제 생성", "PDF 업로드", "복습 추천", "학습 기록", "시험 계획", "문제 평가", "관리자 대시보드"]
+)
 
 with tab1:
     st.header("문제 생성")
@@ -494,3 +496,84 @@ with tab6:
         else:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
+            
+with tab7:
+    st.header("관리자용 문제 품질 대시보드")
+    st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
+    
+    if st.button("관리자 대시보드 불러오기"):
+        response = requests.get(
+            f"{API_BASE_URL}/feedback/admin-dashboard",
+            timeout=30,
+        )
+        
+    if response.status_code == 200:
+        data = response.json()
+        
+        if data.get("feedback_count", 0) == 0:
+            st.info(data.get("message", "아직 평가 데이터가 없습니다."))
+        else:
+            st.subheader("전체 평가 요약")
+            
+            summary = data["summary"]
+            
+            col1, col2, col3, col4, col5 = st.columns(5)
+            
+            with col1:
+                st.metric("평가 수", data["feedback_count"])
+            with col2:
+                st.metric("문제 품질", summary["avg_quality_score"])
+            with col3:
+                st.metric("해설 품질", summary["avg_explanation_score"])
+            with col4:
+                st.metric("시험 적합도", summary["avg_exam_relevacne_score"])
+            with col5:
+                st.metric("난이도 적절성", summary("avg_difficulty_math_score"))
+                
+            st.divider()
+
+            st.subheader("문제 품질 낮은 문제")
+
+            if not data["low_score_questions"]:
+                st.info("문제 품질 점수가 낮은 문제가 없습니다.")
+            else:
+                for item in data["low_score_questions"]:
+                    with st.expander(f"Question ID: {item['question_id']}"):
+                        st.write(f"평가 수: {item['feedback_count']}")
+                        st.write(f"평균 문제 품질: {item['avg_quality_score']}")
+                        st.write(f"평균 해설 품질: {item['avg_explanation_score']}")
+                        st.write(f"평균 시험 적합도: {item['avg_exam_relevance_score']}")
+                        st.write(f"평균 난이도 적절성: {item['avg_difficulty_match_score']}")
+
+            st.subheader("시험 적합도 낮은 문제")
+
+            if not data["low_exam_relevance_questions"]:
+                st.info("시험 적합도 점수가 낮은 문제가 없습니다.")
+            else:
+                for item in data["low_exam_relevance_questions"]:
+                    with st.expander(f"Question ID: {item['question_id']}"):
+                        st.write(f"평가 수: {item['feedback_count']}")
+                        st.write(f"평균 문제 품질: {item['avg_quality_score']}")
+                        st.write(f"평균 해설 품질: {item['avg_explanation_score']}")
+                        st.write(f"평균 시험 적합도: {item['avg_exam_relevance_score']}")
+                        st.write(f"평균 난이도 적절성: {item['avg_difficulty_match_score']}")
+
+            st.subheader("최근 사용자 코멘트")
+
+            if not data["recent_comments"]:
+                st.info("최근 코멘트가 없습니다.")
+            else:
+                for comment in data["recent_comments"]:
+                    with st.expander(
+                        f"{comment['user_name']} / Question ID: {comment['question_id']}"
+                    ):
+                        st.write(f"문제 품질: {comment['quality_score']}")
+                        st.write(f"해설 품질: {comment['explanation_score']}")
+                        st.write(f"시험 적합도: {comment['exam_relevance_score']}")
+                        st.write(f"난이도 적절성: {comment['difficulty_match_score']}")
+                        st.write("코멘트")
+                        st.write(comment["comment"])
+                        st.caption(f"작성 시간: {comment['created_at']}")
+    else:
+        st.error("관리자 대시보드를 불러오지 못했습니다.")
+        st.write(response.text)

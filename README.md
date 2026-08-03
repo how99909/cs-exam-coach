@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v1.7
-주요 업데이트: 문제 품질 평가 기능 추가
+현재 버전: v1.8
+주요 업데이트: 관리자용 품질 대시보드 기능 추가
 
 ## 1. 프로젝트 개요
 
@@ -44,6 +44,11 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 시험 적합도 평가
 - 난이도 적절성 평가
 - 사용자별 문제 평가 요약 조회
+- 관리자용 문제 품질 대시보드
+- 전체 평가 평균 조회
+- 낮은 품질 문제 목록 조회
+- 시험 적합도 낮은 문제 목록 조회
+- 최근 사용자 평가 코멘트 조회
 
 ## 4. 제한사항
 
@@ -58,6 +63,8 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 스캔본 PDF는 OCR을 지원하지 않아 텍스트 추출이 제한될 수 있습니다.
 - 페이지 범위는 사용자가 직접 입력해야 합니다.
 - 긴 페이지 범위를 선택하면 AI API 입력 길이 제한에 걸릴 수 있습니다.
+- 현재 관리자 대시보드는 별도 인증 없이 접근 가능합니다.
+- 실제 서비스에서는 관리자 인증 및 권한 분리가 필요합니다.
 
 ## 5. 기술 스택
 
@@ -368,6 +375,26 @@ Form Data:
   "avg_difficulty_match_score": 4.0
 }
 ```
+
+### 10. 관리자용 평가 대시보드 API
+
+`GET /feedback/admin-dashboard`
+
+#### Response
+
+```json
+{
+  "feedback_count": 10,
+  "summary": {
+    "avg_quality_score": 4.1,
+    "avg_explanation_score": 4.0,
+    "avg_exam_relevance_score": 3.8,
+    "avg_difficulty_match_score": 4.2
+  },
+  "low_score_questions": [],
+  "low_exam_relevance_questions": [],
+  "recent_comments": []
+}
 
 ## 8. 실행 방법
 

@@ -129,3 +129,144 @@ def get_feedback_summary(
         "avg_exam_relevance_score": round(float(result.avg_exam_relevance_score), 2),
         "avg_difficulty_match_score": round(float(result.avg_difficulty_match_score), 2),
     }
+    
+    
+@router.get("/low-score-questions")
+def get_low_score_questions(
+    threshold: float = 3.0,
+    db: Session = Depends(get_db)
+):
+    results = (
+        db.query(
+            models.QuestionFeedback.question_id,
+            func.count(models.QuestionFeedback.id).label("feedback_count"),
+            func.avg(models.QuestionFeedback.quality_score).label("avg_quality_score"),
+            func.avg(models.QuestionFeedback.explanation_score).label("avg_explanation_score"),
+            func.avg(models.QuestionFeedback.exam_relevance_score).label("avg_exam_relevance_score"),
+            func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score"),
+        )
+        .group_by(models.QuestionFeedback.question_id)
+        .having(func.avg(models.QuestionFeedback.quality_score) <= threshold)
+        .order_by(func.avg(models.QuestionFeedback.quality_score).asc())
+        .limit(20)
+        .all()
+    )
+    
+    return [
+        {
+            "question_id": result.question_id,
+            "avg_quality_score": round(float(result.avg_quality_score), 2),
+            "avg_explanation_score": round(float(result.avg_explanation_score), 2),
+            "avg_exam_relevance_score": round(float(result.avg_exam_relevance_score), 2),
+            "avg_difficulty_match_score": round(float(result.avg_difficulty_match_score), 2),
+            "feedback_count": result.feedback_count,
+        }
+        for result in results
+    ]
+    
+    
+@router.get("/low-exam-relevance")
+def get_low_exam_relevance_questions(
+    threshold: float = 3.0,
+    db: Session = Depends(get_db)
+):
+    results = (
+        db.query(
+            models.QuestionFeedback.question_id,
+            func.count(models.QuestionFeedback.id).label("feedback_count"),
+            func.avg(models.QuestionFeedback.quality_score).label("avg_quality_score"),
+            func.avg(models.QuestionFeedback.explanation_score).label("avg_explanation_score"),
+            func.avg(models.QuestionFeedback.exam_relevance_score).label("avg_exam_relevance_score"),
+            func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score"),
+        )
+        .group_by(models.QuestionFeedback.question_id)
+        .having(func.avg(models.QuestionFeedback.exam_relevance_score) <= threshold)
+        .order_by(func.avg(models.QuestionFeedback.exam_relevance_score).asc())
+        .limit(20)
+        .all()
+    )
+    
+    return [
+        {
+            "question_id": result.question_id,
+            "avg_quality_score": round(float(result.avg_quality_score), 2),
+            "avg_explanation_score": round(float(result.avg_explanation_score), 2),
+            "avg_exam_relevance_score": round(float(result.avg_exam_relevance_score), 2),
+            "avg_difficulty_match_score": round(float(result.avg_difficulty_match_score), 2),
+            "feedback_count": result.feedback_count,
+        }
+        for result in results
+    ]
+    
+    
+@router.get("/recent-comments")
+def get_recent_feedback_comments(
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    comments = (
+        db.query(models.QuestionFeedback)
+        .filter(models.QuestionFeedback.comment.isnot(None))
+        .filter(models.QuestionFeedback.comment != "")
+        .order_by(models.QuestionFeedback.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    
+    return [
+        {
+            "id": feedback.id,
+            "user_name": feedback.user_name,
+            "question_id": feedback.question_id,
+            "quality_score": feedback.quality_score,
+            "explanation_score": feedback.explanation_score,
+            "exam_relevance_score": feedback.exam_relevance_score,
+            "difficulty_match_score": feedback.difficulty_match_score,
+            "comment": feedback.comment,
+            "created_at": feedback.created_at,
+        }
+        for feedback in comments
+    ]
+    
+    
+@router.get("/admin-dashboard")
+def get_admin_feedback_dashboard(
+    db: Session = Depends(get_db),
+):
+    summary_result = (
+        db.query(
+            func.count(models.QuestionFeedback.id).label("feedback_count"),
+            func.avg(models.QuestionFeedback.quality_score).label("avg_quality_score"),
+            func.avg(models.QuestionFeedback.explanation_score).label("avg_explanation_score"),
+            func.avg(models.QuestionFeedback.exam_relevance_score).label("avg_exam_relevance_score"),
+            func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score")
+        )
+        .first()
+    )
+    
+    if summary_result.feedback_count == 0:
+        return {
+            "feedback_count": 0,
+            "message": "아직 평가 데이터가 없습니다.",
+            "summary": None,
+            "low_score_questions": [],
+            "low_exam_relevance_questions": [],
+            "recent_comments": [],
+        }
+        
+    low_score_questions = get_low_score_questions(db=db)
+    low_exam_relevance_questions = get_low_exam_relevance_questions(db=db)
+    recent_comments = get_recent_feedback_comments(db=db)
+    
+    return {
+        "feedback_count": summary_result.feedback_count,
+        "summary": {
+            "avg_quality_score": round(float(summary_result.avg_quality_score), 2),
+            "avg_explanation_score": round(float(summary_result.avg_explanation_score), 2),
+            "avg_exam_relevance_score": round(float(summary_result.avg_exam_relevance_score), 2),
+            "avg_difficulty_match_score": round(float(summary_result.avg_difficulty_match_score), 2),
+        },
+        "low_score_questions": low_score_questions,
+        "low_exam_relevance_questions": low_exam_relevance_questions,
+        "recent_comments": recent_comments,
+    }
