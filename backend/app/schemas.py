@@ -63,3 +63,17 @@ class QuestionFeedbackResponse(BaseModel):
     exam_relevance_score: int
     difficulty_match_score: int
     comment: str | None = None
+    
+    
+class RagIndexRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str
+    material_id: int
+    content: str
+    
+    
+class RagAskRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str
+    question: str
+    top_k: int = 5

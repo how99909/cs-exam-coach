@@ -7,3 +7,5 @@ openai
 pydantic
 pypdf
 python-multipart
+chromadb
+tiktoken
