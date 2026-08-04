@@ -16,10 +16,14 @@ services:
     container_name: cs_exam_coach_backend
     env_file:
       - ./backend/.env
+    environment:
+      CHROMA_HOST: chroma
+      CHROMA_PORT: 8000
     ports:
       - "8000:8000"
     depends_on:
       - db
+      - chroma
 
   frontend:
     build: ./frontend
@@ -31,5 +35,14 @@ services:
     depends_on:
       - backend
 
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: cs_exam_coach_chroma
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+
 volumes:
   postgres_data:
+  chroma_data:

@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v1.8
-주요 업데이트: 관리자용 품질 대시보드 기능 추가
+현재 버전: v2.0
+주요 업데이트: RAG 문서 질의응답 기능 추가
 
 ## 1. 프로젝트 개요
 
@@ -49,6 +49,12 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 낮은 품질 문제 목록 조회
 - 시험 적합도 낮은 문제 목록 조회
 - 최근 사용자 평가 코멘트 조회
+- RAG 기반 문서 질의응답
+- PDF 텍스트 chunk 분할
+- OpenAI Embedding 기반 벡터 검색
+- Chroma vector DB 저장
+- 문서 근거 기반 답변 생성
+- 참고한 문서 chunk 출처 표시
 
 ## 4. 제한사항
 
@@ -65,6 +71,10 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 긴 페이지 범위를 선택하면 AI API 입력 길이 제한에 걸릴 수 있습니다.
 - 현재 관리자 대시보드는 별도 인증 없이 접근 가능합니다.
 - 실제 서비스에서는 관리자 인증 및 권한 분리가 필요합니다.
+- 현재 RAG는 텍스트 추출 가능한 PDF만 지원합니다.
+- 스캔본 PDF OCR은 지원하지 않습니다.
+- 문서 chunk 단위 출처는 표시하지만, 정확한 페이지 단위 citation은 아직 제한적입니다.
+- 사용자 이름 기반 필터링은 인증 기능이 아니므로 실제 서비스에서는 로그인/권한 관리가 필요합니다.
 
 ## 5. 기술 스택
 
@@ -86,6 +96,11 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 ### Infra
 - Docker
 - Docker Compose
+
+### RAG / Vector Search
+- Chroma
+- OpenAI Embeddings
+- Vector Similarity Search
 
 ## 6. 시스템 구조
 
@@ -395,6 +410,66 @@ Form Data:
   "low_exam_relevance_questions": [],
   "recent_comments": []
 }
+```
+
+### 11. RAG 문서 인덱싱 API
+
+`POST /rag/index`
+
+#### Request
+
+```json
+{
+  "user_name": "user_a",
+  "subject": "운영체제",
+  "material_id": 1,
+  "content": "운영체제 강의자료 텍스트..."
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "문서 인덱싱이 완료되었습니다.",
+  "chunk_count": 8,
+  "material_id": 1
+}
+```
+
+### 12. RAG 문서 질의응답 API
+
+`POST /rag/ask`
+
+#### REQUEST
+
+```json
+{
+  "user_name": "user_a",
+  "subject": "운영체제",
+  "question": "프로세스와 스레드의 차이는?",
+  "top_k": 5
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "answer": "프로세스는 ...",
+  "sources": [
+    {
+      "source_number": 1,
+      "material_id": 1,
+      "chunk_index": 0,
+      "distance": 0.23,
+      "preview": "프로세스는 실행 중인 프로그램..."
+    }
+  ]
+}
+```
 
 ## 8. 실행 방법
 

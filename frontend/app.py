@@ -24,8 +24,8 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
-    ["문제 생성", "PDF 업로드", "복습 추천", "학습 기록", "시험 계획", "문제 평가", "관리자 대시보드"]
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
+    ["문제 생성", "PDF 업로드", "RAG 질의응답",  "복습 추천", "학습 기록", "시험 계획", "문제 평가", "관리자 대시보드"]
 )
 
 with tab1:
@@ -266,6 +266,10 @@ with tab2:
                     st.session_state.pdf_extracted_text = result["content"]
                     st.success("PDF 텍스트 추출이 완료되었습니다.")
                     
+                    if "pdf_material_id" not in st.session_state:
+                        st.session_state.pdf_material_id = None
+                    st.session_state.pdf_material_id = result["material_id"]
+                    
                     st.write(f"전체 페이지 수: {result['page_count']}")
                     st.write(
                         f"선택된 페이지 범위: {result['selected_start_page']} ~ "
@@ -284,6 +288,38 @@ with tab2:
                     st.error(result.get("message", "PDF 텍스트 추출에 실패했습니다."))
             else:
                 st.error("PDF 업로드 요청에 실패했습니다.")
+                st.write(response.text)
+                            
+    st.divider()
+    
+    st.subheader("RAG 문서 인덱싱")
+    
+    if st.button("추출된 PDF를 RAG 문서로 인덱싱하기"):
+        if not st.session_state.pdf_extracted_text.strip():
+            st.button("먼저 PDF 텍스트를 추출하세요.")
+        elif st.session_state.pdf_material_id in None:
+            st.warning("material_id가 없습니다. PDF를 다시 추출하세요.")
+        else:
+            response = requests.post(
+                f"{API_BASE_URL}/rag/index",
+                json={
+                    "user_name": st.session_state.user_name,
+                    "subject": pdf_subject,
+                    "material_id": st.session_state.pdf_material_id,
+                    "content": st.session_state.pdf_extracted_text,
+                },
+                timeout=180,
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                if result.get("success"):
+                    st.success(f"RAG 인덱싱 완료: {result['chunk_count']}개 chunk 저장")
+                else:
+                    st.error(result.get("message", "RAG 인덱싱에 실패했습니다."))
+            else:
+                st.error("RAG 인덱싱 요청에 실패했습니다.")
                 st.write(response.text)
                 
     st.divider()
@@ -337,6 +373,68 @@ with tab2:
                 st.write(response.text)
 
 with tab3:
+    st.header("RAG 문서 질의응답")
+    st.caption("인덱싱된 PDF 자료를 기반으로 질문에 답합니다.")
+    
+    rag_subject = st.selectbox(
+        "질문할 과목을 선택하세요",
+        ["알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="rag_subject",
+    )
+    
+    rag_question = st.text_area(
+        "질문을 입력하세요",
+        height=120,
+        placeholder="예: BFS와 DFS의 차이를 설명해줘.",
+    )
+    
+    top_k = st.slider(
+        "검색할 문서 조각 수",
+        min_value=1,
+        max_value=10,
+        value=5,
+        key="rag_top_k",
+    )
+    
+    if st.button("문서 기반 답변 생성하기"):
+        if not rag_question.strip():
+            st.warning("질문을 입력하세요.")
+        else:
+            response = requests.post(
+                f"{API_BASE_URL}/rag/ask",
+                json={
+                    "user_name": st.session_state.user_name,
+                    "subject": rag_subject,
+                    "question": rag_question,
+                    "top_k": top_k,
+                },
+                timeout=180,
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                if result.get("success"):
+                    st.subheader("답변")
+                    st.write(result["answer"])
+                    
+                    st.subheader("참고한 문서 조각")
+                    
+                    for source in result["sources"]:
+                        with st.expander(
+                            f"Source {source['source_number']} "
+                            f"/ material_id={source['material_id']} "
+                            f"/ chunk={source['chunk_index']}"
+                        ):
+                            st.write(f"distance: {source['distance']}")
+                            st.write(source["preview"])
+                else:
+                    st.error(result.get("message", "답변 생성에 실패했습니다."))
+            else:
+                st.error("RAG 질의응답 요청에 실패했습니다.")
+                st.write(response.text)
+
+with tab4:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -360,7 +458,7 @@ with tab3:
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab4:
+with tab5:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
@@ -419,7 +517,7 @@ with tab4:
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
             
-with tab5:
+with tab6:
     st.header("시험 D-Day 계획")
     
     exam_date = st.date_input(
@@ -472,7 +570,7 @@ with tab5:
             st.error("복습 계획 요청에 실패했습니다.")
             st.write(response.text)
             
-with tab6:
+with tab7:
     st.header("문제 평가 요약")
     
     if st.button("내 평가 요약 불러오기"):
@@ -497,7 +595,7 @@ with tab6:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
             
-with tab7:
+with tab8:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     
@@ -577,3 +675,4 @@ with tab7:
     else:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
+        
