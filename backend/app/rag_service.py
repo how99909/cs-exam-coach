@@ -190,7 +190,13 @@ def answer_with_context(
         
     context_text = "\n\n".join(
         [
-            f"[Source {index + 1} | material_id={item['metadata']['material_id']} | chunk{item['metadata']['chunk_index']}]\n{item['content']}"
+            (
+                f"[Source {index + 1} | "
+                f"material_id={item['metadata'].get('material_id')} | "
+                f"page={item['metadata'].get('page_number', 'unknown')} |"
+                f"chunk={item['metadata'].get('chunk_index')}]\n"
+                f"{item['content']}"
+            )
             for index, item in enumerate(retrieved_chunks)
         ]
     )
@@ -234,11 +240,74 @@ def answer_with_context(
         "sources": [
             {
                 "source_number": index + 1,
-                "material_id": item["metadata"]["material_id"],
-                "chunk_index": item["metadata"]["chunk_index"],
+                "material_id": item["metadata"].get("material_id"),
+                "page_number": item["metadata"].get("page_number"),
+                "chunk_index": item["metadata"].get("chunk_index"),
                 "distance": item["distance"],
                 "preview": item["content"][:500],
             }
             for index, item in enumerate(retrieved_chunks)
         ],
+    }
+    
+    
+def index_document_pages(
+    user_name: str,
+    subject: str,
+    material_id: int,
+    pages: list[dict[str, Any]],
+) -> dict[str, Any]:
+    collection = get_collection()
+    
+    ids = []
+    documents = []
+    embeddings = []
+    metadatas = []
+    
+    total_chunk_count = 0
+    
+    for page_item in pages:
+        page_number = page_item.get("page")
+        page_text = page_item.get("text", "")
+        
+        chunks = split_text_into_chunks(page_text)
+        
+        for chunk_index, chunk in enumerate(chunks):
+            chunk_id = f"{user_name}-{subject}-{material_id}-p{page_number}-c{chunk_index}"
+            
+            embedding = create_embedding(chunk)
+            
+            ids.append(chunk_id)
+            documents.append(chunk)
+            embeddings.append(embedding)
+            metadatas.append(
+                {
+                    "user_name": user_name,
+                    "subject": subject,
+                    "material_id": material_id,
+                    "page_number": page_number,
+                    "chunk_index": chunk_index,
+                }
+            )
+            
+            total_chunk_count += 1
+            
+    if not documents:
+        return {
+            "success": False,
+            "message": "인덱싱할 페이지 텍스트가 없습니다.",
+        }
+        
+    collection.upsert(
+        ids=ids,
+        documents=documents,
+        embeddings=embeddings,
+        metadatas=metadatas
+    )
+    
+    return {
+        "success": True,
+        "message": "페이지 단위 문서 인덱싱이 완료되었습니다.",
+        "chunk_count": total_chunk_count,
+        "material_id": material_id,
     }

@@ -54,8 +54,8 @@ async def extract_pdf_text(
             if text:
                 extracted_pages.append(
                     {
-                    "page": page_number,
-                    "text": text,
+                        "page": page_number,
+                        "text": text,
                     }
                 )
                 
@@ -92,6 +92,7 @@ async def extract_pdf_text(
             "text_length": len(full_text),
             "preview": full_text[:2000] + ("..." if len(full_text) > 2000 else ""),
             "content": full_text,
+            "pages": extracted_pages,
         }
         
     except Exception as error:

@@ -65,11 +65,17 @@ class QuestionFeedbackResponse(BaseModel):
     comment: str | None = None
     
     
+class RagPage(BaseModel):
+    page: int
+    text: str
+    
+    
 class RagIndexRequest(BaseModel):
     user_name: str = "default_user"
     subject: str
     material_id: int
-    content: str
+    content: str | None = None
+    pages: list[RagPage] | None = None
     
     
 class RagAskRequest(BaseModel):

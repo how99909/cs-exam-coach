@@ -233,6 +233,12 @@ with tab2:
     if "pdf_extracted_text" not in st.session_state:
         st.session_state.pdf_extracted_text = ""
         
+    if "pdf_material_id" not in st.session_state:
+        st.session_state.pdf_material_id = None
+        
+    if "pdf_pages" not in st.session_state:
+        st.session_state.pdf_pages = []
+        
     if st.button("PDF 텍스트 추출하기"):
         if uploaded_file is None:
             st.warning("PDF 파일을 업로드해주세요.")
@@ -263,12 +269,10 @@ with tab2:
                 result = response.json()
                 
                 if result.get("success"):
-                    st.session_state.pdf_extracted_text = result["content"]
                     st.success("PDF 텍스트 추출이 완료되었습니다.")
-                    
-                    if "pdf_material_id" not in st.session_state:
-                        st.session_state.pdf_material_id = None
+                    st.session_state.pdf_extracted_text = result["content"]
                     st.session_state.pdf_material_id = result["material_id"]
+                    st.session_state.pdf_pages = result.get("pages", [])
                     
                     st.write(f"전체 페이지 수: {result['page_count']}")
                     st.write(
@@ -300,14 +304,20 @@ with tab2:
         elif st.session_state.pdf_material_id in None:
             st.warning("material_id가 없습니다. PDF를 다시 추출하세요.")
         else:
+            payload = {
+                "user_name": st.session_state.user_name,
+                "subject": pdf_subject,
+                "material_id": st.session_state.pdf_extracted_text
+            }
+            
+            if st.session_state.pdf_pages:
+                payload["pages"] = st.session_state.pdf_pages
+            else:
+                payload["content"] = st.session_state.pdf_extracted_text
+            
             response = requests.post(
                 f"{API_BASE_URL}/rag/index",
-                json={
-                    "user_name": st.session_state.user_name,
-                    "subject": pdf_subject,
-                    "material_id": st.session_state.pdf_material_id,
-                    "content": st.session_state.pdf_extracted_text,
-                },
+                json=payload,
                 timeout=180,
             )
             
@@ -421,9 +431,12 @@ with tab3:
                     st.subheader("참고한 문서 조각")
                     
                     for source in result["sources"]:
+                        page_label = source.get("page_number") or "unknown"
+                        
                         with st.expander(
                             f"Source {source['source_number']} "
                             f"/ material_id={source['material_id']} "
+                            f"/ Page {page_label}"
                             f"/ chunk={source['chunk_index']}"
                         ):
                             st.write(f"distance: {source['distance']}")
@@ -599,13 +612,14 @@ with tab8:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     
+    response = None
     if st.button("관리자 대시보드 불러오기"):
         response = requests.get(
             f"{API_BASE_URL}/feedback/admin-dashboard",
             timeout=30,
         )
         
-    if response.status_code == 200:
+    if response is not None and response.status_code == 200:
         data = response.json()
         
         if data.get("feedback_count", 0) == 0:
@@ -624,9 +638,9 @@ with tab8:
             with col3:
                 st.metric("해설 품질", summary["avg_explanation_score"])
             with col4:
-                st.metric("시험 적합도", summary["avg_exam_relevacne_score"])
+                st.metric("시험 적합도", summary["avg_exam_relevance_score"])
             with col5:
-                st.metric("난이도 적절성", summary("avg_difficulty_math_score"))
+                st.metric("난이도 적절성", summary["avg_difficulty_match_score"])
                 
             st.divider()
 
@@ -672,7 +686,7 @@ with tab8:
                         st.write("코멘트")
                         st.write(comment["comment"])
                         st.caption(f"작성 시간: {comment['created_at']}")
-    else:
+    elif response is not None:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
         
