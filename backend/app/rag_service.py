@@ -129,19 +129,25 @@ def retrieve_chunks(
     subject: str,
     question: str,
     top_k: int = 5,
+    material_id: int | None = None,
 ) -> list[dict[str, Any]]:
     collection = get_collection()
     query_embedding = create_embedding(question)
     
+    where_conditions = [
+        {"user_name": {"$eq": user_name}},
+        {"subject": {"$eq": subject}},
+    ]
+    
+    if material_id is not None:
+        where_conditions.append({"material_id": {"$eq": material_id}})
+        
+    where_filter = {"$and": where_conditions}
+    
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=top_k,
-        where={
-            "$and": [
-                {"user_name": {"$eq": user_name}},
-                {"subject": {"$eq": subject}},
-            ]
-        },
+        where=where_filter,
         include=["documents", "metadatas", "distances"],
     )
     
@@ -168,6 +174,7 @@ def answer_with_context(
     subject: str,
     question: str,
     top_k: int = 5,
+    material_id: int | None = None,
 ) -> dict[str, Any]:
     if client is None:
         return {
@@ -180,6 +187,7 @@ def answer_with_context(
         subject=subject,
         question=question,
         top_k=top_k,
+        material_id=material_id,
     )
     
     if not retrieved_chunks:
@@ -201,8 +209,16 @@ def answer_with_context(
         ]
     )
     
+    search_scope = (
+        f"material_id={material_id} 문서"
+        if material_id is not None
+        else f"{subject} 과목 전체 인덱싱 문서"
+    )
+    
     prompt = f"""
 너는 컴퓨터소프트웨어학 전공 학습을 돕는 RAG 기반 튜터다.
+
+검색 범위: {search_scope}
 
 아래 제공된 문서 근거만 사용해서 질문에 답하라.
 문서에 없는 내용은 추측하지 말고 "제공된 자료만으로는 확인하기 어렵습니다"라고 말하라.
@@ -236,6 +252,8 @@ def answer_with_context(
     
     return {
         "success": True,
+        "search_scope": search_scope,
+        "material_id": material_id,
         "answer": answer,
         "sources": [
             {

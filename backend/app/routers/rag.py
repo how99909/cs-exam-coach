@@ -44,6 +44,7 @@ def ask_document(request: schemas.RagAskRequest):
         subject=request.subject,
         question=request.question,
         top_k=request.top_k,
+        material_id=request.material_id,
     )
     
     

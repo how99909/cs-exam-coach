@@ -392,6 +392,54 @@ with tab3:
         key="rag_subject",
     )
     
+    search_scope = st.radio(
+        "검색 범위",
+        ["과목 전체 문서", "특정 문서"],
+        key="rag_search_scope",
+    )
+    
+    selected_material_id = None
+    
+    if search_scope == "특정 문서":
+        if st.button("질문 가능한 문서 목록 불러오기"):
+            response = requests.get(
+                f"{API_BASE_URL}/rag/documents",
+                params={
+                    "user_name": st.session_state.user_name,
+                    "subject": rag_subject,
+                },
+                timeout=30,
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                st.session_state.rag_question_documents = result.get("documents", [])
+                
+                if not st.session_state.rag_question_documents:
+                    st.info("인덱싱된 문서가 없습니다. 먼저 PDF를 인덱싱하세요.")
+            else:
+                st.error("문서 목록을 불러오지 못햇습니다.")
+                st.write(response.text)
+                
+        if "rag_question_documents" not in st.session_state:
+            st.session_state.rag_question_documents = []
+            
+        if st.session_state.rag_question_documents:
+            material_options ={
+                f"material_id={doc['material_id']} / pages={doc['pages']} / chunks={doc['chunk_count']}":doc[
+                    "material_id"
+                ]
+                for doc in st.session_state.rag_question_documents
+            }
+            
+            selected_label = st.selectbox(
+                "질문할 문서 선택",
+                list(material_options.keys()),
+                key="rag_selected_material_label",
+            )
+            
+            selected_material_id = material_options[selected_label]
+    
     rag_question = st.text_area(
         "질문을 입력하세요",
         height=120,
@@ -410,14 +458,23 @@ with tab3:
         if not rag_question.strip():
             st.warning("질문을 입력하세요.")
         else:
+            payload = {
+                "user_name": st.session_state.user_name,
+                "subject": rag_subject,
+                "question": rag_question,
+                "top_k": top_k,
+            }
+            
+            if search_scope == "특정 문서":
+                if selected_material_id is None:
+                    st.warning("특정 문서 검색을 선택했다면 문서를 먼저 선택하세요.")
+                    st.stop()
+                    
+                payload["material_id"] = selected_material_id
+            
             response = requests.post(
                 f"{API_BASE_URL}/rag/ask",
-                json={
-                    "user_name": st.session_state.user_name,
-                    "subject": rag_subject,
-                    "question": rag_question,
-                    "top_k": top_k,
-                },
+                json=payload,
                 timeout=180,
             )
             
@@ -426,6 +483,7 @@ with tab3:
                 
                 if result.get("success"):
                     st.subheader("답변")
+                    st.caption(f"검색 범위: {result.get('search_scope', '알 수 없음')}")
                     st.write(result["answer"])
                     
                     st.subheader("참고한 문서 조각")

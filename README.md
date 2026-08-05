@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v2.2
-주요 업데이트: RAG 문서 관리 기능 추가
+현재 버전: v2.3
+주요 업데이트: 문서별 RAG 질의응답 기능
 
 ## 1. 프로젝트 개요
 
@@ -62,6 +62,9 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 사용자별/과목별 RAG 문서 필터링
 - 문서별 chunk 수 및 page 목록 확인
 - material_id 기준 RAG 인덱싱 문서 삭제
+- 문서별 RAG 질의응답
+- 과목 전체 문서 검색과 특정 PDF 문서 검색 선택
+- material_id 기준 검색 범위 제한
 
 ## 4. 제한사항
 
@@ -82,6 +85,8 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - RAG 문서 삭제는 Chroma Vector DB의 chunk만 삭제합니다.
 - PostgreSQL의 StudyMaterial 기록은 유지됩니다.
 - 현재 문서 삭제는 사용자 이름, 과목, material_id 기준으로 동작합니다.
+- 특정 문서 검색은 material_id 기준으로 동작합니다.
+- 현재 여러 material_id를 동시에 선택하는 기능은 지원하지 않습니다.
 
 ## 5. 기술 스택
 
@@ -456,7 +461,8 @@ Form Data:
   "user_name": "user_a",
   "subject": "운영체제",
   "question": "프로세스와 스레드의 차이는?",
-  "top_k": 5
+  "top_k": 5,
+  "material_id": 1
 }
 ```
 
@@ -465,7 +471,9 @@ Form Data:
 ```json
 {
   "success": true,
-  "answer": "프로세스는 실행 중인 프로그램을 의미합니다...",
+  "search_scope": "material_id=1 문서",
+  "material_id": 1,
+  "answer": "프로세스는...",
   "sources": [
     {
       "source_number": 1,
