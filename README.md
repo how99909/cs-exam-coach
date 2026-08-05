@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v2.3
-주요 업데이트: 문서별 RAG 질의응답 기능
+현재 버전: v2.4
+주요 업데이트: RAG 답변 평가 기능 추가
 
 ## 1. 프로젝트 개요
 
@@ -65,6 +65,12 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 문서별 RAG 질의응답
 - 과목 전체 문서 검색과 특정 PDF 문서 검색 선택
 - material_id 기준 검색 범위 제한
+- RAG 답변 평가
+- 답변 정확도 평가
+- 근거 충분성 평가
+- 출처 적합성 평가
+- 도움 여부 평가
+- 사용자별 RAG 평가 요약 조회
 
 ## 4. 제한사항
 
@@ -87,6 +93,8 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 현재 문서 삭제는 사용자 이름, 과목, material_id 기준으로 동작합니다.
 - 특정 문서 검색은 material_id 기준으로 동작합니다.
 - 현재 여러 material_id를 동시에 선택하는 기능은 지원하지 않습니다.
+- RAG 답변 평가는 사용자의 주관적 평가이며, 실제 정답성을 보장하지 않습니다.
+- 현재 평가 데이터는 프롬프트 자동 개선에 직접 사용되지는 않습니다.
 
 ## 5. 기술 스택
 
@@ -539,6 +547,60 @@ Form Data:
   "message": "인덱싱 문서가 삭제되었습니다.",
   "deleted_count": 8,
   "material_id": 1
+}
+```
+
+### 15. RAG 답변 평가 저장 API
+
+`POST /rag-feedback/answer`
+
+#### Request
+
+```json
+{
+  "user_name": "user_a",
+  "subject": "운영체제",
+  "material_id": 1,
+  "question": "프로세스와 스레드의 차이는?",
+  "answer": "프로세스는...",
+  "accuracy_score": 5,
+  "grounding_score": 4,
+  "source_relevance_score": 5,
+  "helpfulness_score": 5,
+  "comment": "출처가 명확해서 좋았습니다."
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "RAG 답변 평가가 저장되었습니다.",
+  "feedback_id": 1
+}
+```
+
+### 16. RAG 답변 평가 요약 API
+
+`GET /rag-feedback/summary`
+
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
+| subject | 과목명, 선택 |
+
+#### Response
+
+```json
+{
+  "feedback_count": 3,
+  "avg_accuracy_score": 4.67,
+  "avg_grounding_score": 4.33,
+  "avg_source_relevance_score": 4.67,
+  "avg_helpfulness_score": 4.0
 }
 ```
 

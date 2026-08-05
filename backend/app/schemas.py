@@ -89,3 +89,16 @@ class RagDeleteRequest(BaseModel):
     user_name: str = "default_user"
     subject: str
     material_id: int
+    
+    
+class RagAnswerFeedbackCreate(BaseModel):
+    user_name: str = "default_user"
+    subject: str
+    material_id: int | None = None
+    question: str
+    answer: str
+    accuracy_score: int
+    grounding_score: int
+    source_relevance_score: int
+    helpfulness_score: int
+    comment: str | None = None

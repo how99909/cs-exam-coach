@@ -24,8 +24,19 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(
-    ["문제 생성", "PDF 업로드", "RAG 질의응답", "RAG 문서 관리", "복습 추천", "학습 기록", "시험 계획", "문제 평가", "관리자 대시보드"]
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(
+    [
+        "문제 생성", 
+        "PDF 업로드", 
+        "RAG 질의응답", 
+        "RAG 문서 관리", 
+        "복습 추천", 
+        "학습 기록", 
+        "시험 계획", 
+        "문제 평가", 
+        "관리자 대시보드",
+        "RAG 평가",
+    ]
 )
 
 with tab1:
@@ -499,10 +510,87 @@ with tab3:
                         ):
                             st.write(f"distance: {source['distance']}")
                             st.write(source["preview"])
+                            
+                    st.session_state.last_rag_question = rag_question
+                    st.session_state.last_rag_answer = result["answer"]
+                    st.session_state.last_rag_subject = rag_subject
+                    st.session_state.last_rag_material_id = result.get("material_id")
                 else:
                     st.error(result.get("message", "답변 생성에 실패했습니다."))
             else:
                 st.error("RAG 질의응답 요청에 실패했습니다.")
+                st.write(response.text)
+                
+    st.divider()
+    st.subheader("RAG 답변 평가")
+    
+    if "last_rag_answer" not in st.session_state:
+        st.info("먼저 RAG 답변을 생성하세요.")
+    else:
+        accuracy_score = st.slider(
+            "답변 정확도",
+            min_value=1,
+            max_value=5,
+            value=3,
+            key="rag_accuracy_score",
+        )
+        
+        grounding_score = st.slider(
+            "근거 충분성",
+            min_value=1,
+            max_value=5,
+            value=3,
+            key="rag_grounding_score",
+        )
+        
+        source_relevance_score = st.slider(
+            "출처 적합성",
+            min_value=1,
+            max_value=5,
+            value=3,
+            key="rag_source_relevance_score",
+        )
+        
+        helpfulness_score = st.slider(
+            "도움 여부",
+            min_value=1,
+            max_value=5,
+            value=3,
+            key="rag_helpfulness_score",
+        )
+        
+        rag_feedback_comment = st.text_area(
+            "RAG 답변 평가 코멘트",
+            key="rag_feedback_comment",
+            placeholder="답변이 문서 근거에 충실했는지, 출처가 적절했는지 적어주세요.",
+        )
+        
+        if st.button("RAG 답변 평가 저장"):
+            response = requests.post(
+                f"{API_BASE_URL}/rag-feedback/answer",
+                json={
+                    "user_name": st.session_state.user_name,
+                    "subject": st.session_state.subject,
+                    "material_id": st.session_state.material_id,
+                    "question": st.session_state.question,
+                    "answer": st.session_state.answer,
+                    "accuracy_score": accuracy_score,
+                    "grounding_score": grounding_score,
+                    "source_relevance_score": source_relevance_score,
+                    "helpfulness_score": helpfulness_score,
+                    "comment": rag_feedback_comment,
+                },
+                timeout=30,
+            )
+            
+            if response.status_code == 200:
+                saved = response.json()
+                if saved.get("success"):
+                    st.success("RAG 답변 평가가 저장되었습니다.")
+                else:
+                    st.error(saved.get("message", "RAG 답변 평가 저장에 실패했습니다."))
+            else:
+                st.error("RAG 답변 평가 요청에 실패했습니다.")
                 st.write(response.text)
 
 with tab4:
@@ -842,3 +930,80 @@ with tab9:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
         
+with tab10:
+    st.header("RAG 답변 평가 요약")
+    
+    rag_feedback_subject = st.selectbox(
+        "평가 요약 과목",
+        ["전체", "알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="rag_feedback_subject",
+    )
+    
+    params = {
+        "user_name": st.session_state.user_name,
+    }
+    
+    if rag_feedback_subject != "전체":
+        params["subject"] = rag_feedback_subject
+        
+    if st.button("내 RAG 평가 요약 불러오기"):
+        response = requests.get(
+            f"{API_BASE_URL}/rag-feedback/summary",
+            params=params,
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            if result.get("feedback_count", 0) == 0:
+                st.info(result.get("message", "아직 RAG 답변 평가 데이터가 없습니다."))
+            else:
+                col1, col2, col3, col4, col5 = st.columns(5)
+                
+                with col1:
+                    st.metric("평가 수", result["feedback_count"])
+                with col2:
+                    st.metric("답변 정확도", result["avg_accuracy_score"])
+                with col3:
+                    st.metric("근거 충분성", result["avg_grounding_score"])
+                with col4:
+                    st.metric("출처 적합성", result["avg_source_relevance_score"])
+                with col5:
+                    st.metric("도움 여부", result["avg_helpfulness_score"])
+        else:
+            st.error("RAG 평가요약을 불러오지 못했습니다.")
+            st.write(response.text)
+            
+    if st.button("최근 RAG 평가 코멘트 불러오기"):
+        response = requests.get(
+            f"{API_BASE_URL}/rag-feedback/recent",
+            params=params,
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            items = response.json()
+            
+            if not items:
+                st.info("최근 RAG 평가 코멘트가 없습니다.")
+            else:
+                for item in items:
+                    with st.expander(
+                        f"{item['subject']} / material_id={item['material_id']} / {item['created_at']}"
+                    ):
+                        st.write("질문")
+                        st.write(item["question"])
+                        
+                        st.write("점수")
+                        st.write(f"- 답변 정확도: {item['accuracy_score']}")
+                        st.write(f"- 근거 충분성: {item['grounding_score']}")
+                        st.write(f"- 출처 적합성: {item['source_relevance_score']}")
+                        st.write(f"- 도움 여부: {item['helpfulness_score']}")
+                        
+                        if item["comment"]:
+                            st.write("코멘트")
+                            st.write(item["comment"])
+        else:
+            st.error("최근 RAG 평가를 불러오지 못했습니다.")
+            st.write(response.text)

@@ -53,3 +53,21 @@ class QuestionFeedback(Base):
     difficulty_match_score = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    
+class RagAnswerFeedback(Base):
+    __tablename__ = "rag_answer_feedback"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_name = Column(String(100), nullable=False, default="default_user")
+    subject = Column(String(100), nullable=False)
+    material_id = Column(Integer, nullable=True)
+    question = Column(Text, nullable=False)
+    answer = Column(Text, nullable=False)
+    accuracy_score = Column(Integer, nullable=False)
+    grounding_score = Column(Integer, nullable=False)
+    source_relevance_score = Column(Integer, nullable=False)
+    helpfulness_score = Column(Integer, nullable=False)
+    comment = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
