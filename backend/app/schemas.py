@@ -83,3 +83,8 @@ class RagAskRequest(BaseModel):
     subject: str
     question: str
     top_k: int = 5
+    
+class RagDeleteRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str
+    material_id: int

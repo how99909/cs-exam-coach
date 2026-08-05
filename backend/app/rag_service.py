@@ -311,3 +311,130 @@ def index_document_pages(
         "chunk_count": total_chunk_count,
         "material_id": material_id,
     }
+    
+    
+def list_indexed_documents(
+    user_name: str | None = None,
+    subject: str | None = None,
+) -> dict[str, Any]:
+    collection = get_collection()
+    
+    where_conditions = []
+    
+    if user_name:
+        where_conditions.append({"user_name": {"$eq": user_name}})
+        
+    if subject:
+        where_conditions.append({"subject": {"$eq": subject}})
+        
+    where_filter = None
+    
+    if len(where_conditions) == 1:
+        where_filter = where_conditions[0]
+    elif len(where_conditions) > 1:
+        where_filter = {"$and": where_conditions}
+        
+    if where_filter:
+        results = collection.get(
+            where=where_filter,
+            include=["metadatas"],
+        )
+    else:
+        results = collection.get(
+            include=["metadatas"],
+        )
+        
+    metadatas = results.get("metadatas", [])
+    
+    document_map = {}
+    
+    for metadata in metadatas:
+        material_id = metadata.get("material_id")
+        doc_user_name = metadata.get("user_name")
+        doc_subject = metadata.get("subject")
+        
+        key = f"{doc_user_name}-{doc_subject}-{material_id}"
+        
+        if key not in document_map:
+            document_map[key] = {
+                "user_name": doc_user_name,
+                "subject": doc_subject,
+                "material_id": material_id,
+                "chunk_count": 0,
+                "pages": set(),
+            }
+            
+        document_map[key]["chunk_count"] += 1
+        
+        page_number = metadata.get("page_number")
+        if page_number is not None:
+            document_map[key]["pages"].add(page_number)
+            
+    documents = []
+    
+    for item in document_map.values():
+        pages = sorted(list(item["pages"]))
+        
+        documents.append(
+            {
+                "user_name": item["user_name"],
+                "subject": item["subject"],
+                "material_id": item["material_id"],
+                "chunk_count": item["chunk_count"],
+                "pages": pages,
+                "page_count": len(pages),
+            }
+        )
+        
+    documents.sort(
+        key=lambda item: (
+            item["user_name"] or "",
+            item["subject"] or "",
+            item["material_id"] or 0,
+        )
+    )
+    
+    return {
+        "success": True,
+        "document_count": len(documents),
+        "documents": documents,
+    }
+    
+    
+def delete_indexed_document(
+    user_name: str,
+    subject: str,
+    material_id: int,
+) -> dict[str, Any]:
+    collection = get_collection()
+    
+    where_filter = {
+        "$and": [
+            {"user_name": {"$eq": user_name}},
+            {"subject": {"$eq": subject}},
+            {"material_id": {"$eq": material_id}},
+        ]
+    }
+    
+    existing = collection.get(
+        where=where_filter,
+        include=["metadatas"],
+    )
+    
+    ids = existing.get("ids", [])
+    
+    if not ids:
+        return {
+            "success": False,
+            "message": "삭제할 인덱싱 문서를 찾지 못했습니다.",
+            "deleted_count": 0,
+        }
+        
+    collection.delete(ids=ids)
+    
+    return {
+        "success": True,
+        "message": "인덱싱 문서가 삭제되었습니다.",
+        "deleted_count": len(ids),
+        "material_id": material_id,
+    }

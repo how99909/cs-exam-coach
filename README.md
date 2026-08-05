@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v2.1
-주요 업데이트: 페이지 단위 출처 강화
+현재 버전: v2.2
+주요 업데이트: RAG 문서 관리 기능 추가
 
 ## 1. 프로젝트 개요
 
@@ -58,6 +58,10 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - RAG 답변 source에 PDF 페이지 번호 표시
 - 페이지 단위 chunk metadata 저장
 - 선택한 PDF 페이지 범위 기반 RAG 인덱싱
+- RAG 인덱싱 문서 목록 조회
+- 사용자별/과목별 RAG 문서 필터링
+- 문서별 chunk 수 및 page 목록 확인
+- material_id 기준 RAG 인덱싱 문서 삭제
 
 ## 4. 제한사항
 
@@ -68,16 +72,16 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 동일한 사용자 이름을 입력하면 같은 학습 기록을 조회할 수 있습니다.
 - 실제 서비스에서는 회원가입/로그인 및 인증 기능이 필요합니다.
 - 시험 복습 계획은 오답 빈도를 기준으로 한 규칙 기반 추천이며, 실제 학습 효과를 보장하지 않습니다.
-- 현재 PDF 기능은 텍스트 기반 PDF를 대상으로 합니다.
-- 스캔본 PDF는 OCR을 지원하지 않아 텍스트 추출이 제한될 수 있습니다.
 - 페이지 범위는 사용자가 직접 입력해야 합니다.
-- 긴 페이지 범위를 선택하면 AI API 입력 길이 제한에 걸릴 수 있습니다.
 - 현재 관리자 대시보드는 별도 인증 없이 접근 가능합니다.
 - 실제 서비스에서는 관리자 인증 및 권한 분리가 필요합니다.
 - 현재 RAG는 텍스트 추출 가능한 PDF만 지원합니다.
 - 현재 source는 PDF 페이지 번호와 chunk 번호를 기준으로 표시됩니다.
 - PDF 텍스트 추출 품질에 따라 page metadata 정확도가 달라질 수 있습니다.
 - 스캔본 PDF는 OCR을 지원하지 않아 페이지 기반 RAG 품질이 제한될 수 있습니다.
+- RAG 문서 삭제는 Chroma Vector DB의 chunk만 삭제합니다.
+- PostgreSQL의 StudyMaterial 기록은 유지됩니다.
+- 현재 문서 삭제는 사용자 이름, 과목, material_id 기준으로 동작합니다.
 
 ## 5. 기술 스택
 
@@ -445,7 +449,7 @@ Form Data:
 
 `POST /rag/ask`
 
-#### REQUEST
+#### Request
 
 ```json
 {
@@ -472,6 +476,61 @@ Form Data:
       "preview": "프로세스는 실행 중인 프로그램..."
     }
   ]
+}
+```
+
+### 13. RAG 문서 목록 조회 API
+
+`GET /rag/documents`
+
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
+| subject | 과목명, 선택 |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "document_count": 1,
+  "documents": [
+    {
+      "user_name": "user_a",
+      "subject": "운영체제",
+      "material_id": 1,
+      "chunk_count": 8,
+      "pages": [2, 3, 4],
+      "page_count": 3
+    }
+  ]
+}
+```
+
+### 14. RAG 문서 삭제 API
+
+`DELETE /rag/documents`
+
+#### Request
+
+```json
+{
+  "user_name": "user_a",
+  "subject": "운영체제",
+  "material_id": 1
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "인덱싱 문서가 삭제되었습니다.",
+  "deleted_count": 8,
+  "material_id": 1
 }
 ```
 

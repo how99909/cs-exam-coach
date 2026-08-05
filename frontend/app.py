@@ -24,8 +24,8 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
-    ["문제 생성", "PDF 업로드", "RAG 질의응답",  "복습 추천", "학습 기록", "시험 계획", "문제 평가", "관리자 대시보드"]
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(
+    ["문제 생성", "PDF 업로드", "RAG 질의응답", "RAG 문서 관리", "복습 추천", "학습 기록", "시험 계획", "문제 평가", "관리자 대시보드"]
 )
 
 with tab1:
@@ -448,6 +448,100 @@ with tab3:
                 st.write(response.text)
 
 with tab4:
+    st.header("RAG 문서 관리")
+    st.caption("현재 Chroma Vector DB에 인덱싱된 문서를 조회하고 삭제합니다.")
+    
+    manage_subject = st.selectbox(
+        "조회할 과목",
+        ["전체", "알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="manage_subject",
+    )
+    
+    params = {
+        "user_name": st.session_state.user_name,
+    }
+    
+    if manage_subject != "전체":
+        params["subject"] = manage_subject
+        
+    if st.button("내 RAG 문서 목록 불러오기"):
+        response = requests.get(
+            f"{API_BASE_URL}/rag/documents",
+            params=params,
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            if not result.get("documents"):
+                st.info("인덱싱된 문서가 없습니다.")
+            else:
+                st.success(f"{result['document_count']}개 문서를 찾았습니다.")
+                
+                st.session_state.rag_documents = result["documents"]
+        else:
+            st.error("RAG 문서 목록을 불러오지 못했습니다.")
+            st.write(response.text)
+    
+    if "rag_documents" not in st.session_state:
+        st.session_state.rag_documents = []
+        
+    if st.session_state.rag_documents:
+        st.subheader("인덱싱된 문서 목록")
+        
+        for document in st.session_state.rag_documents:
+            with st.expander(
+                f"{document['subject']} / material_id={document['material_id']}"
+            ):
+                st.write(f"사용자: {document['user_name']}")
+                st.write(f"과목: {document['subject']}")
+                st.write(f"material_id: {document['material_id']}")
+                st.write(f"chunk 수: {document['chunk_count']}")
+                st.write(f"페이지 수: {document['page_count']}")
+                st.write(f"페이지 목록: {document['pages']}")
+                
+                delete_confirm = st.checkbox(
+                    f"이 문서를 삭제하겠습니다. material_id={document['material_id']}",
+                    key=f"delete_confirm_{document['material_id']}"
+                )
+                
+                if st.button(
+                    f"문서 삭제 material_id={document['material_id']}",
+                    key=f"delete_button_{document['material_id']}",
+                ):
+                    if not delete_confirm:
+                        st.warning("삭제하려면 먼저 확인 체크박스를 선택하세요.")
+                    else:
+                        delete_response = requests.delete(
+                            f"{API_BASE_URL}/rag/documents",
+                            json={
+                                "user_name": st.session_state.user_name,
+                                "subject": document["subject"],
+                                "material_id": document["material_id"],
+                            },
+                            timeout=30,
+                        )
+                        
+                        if delete_response.status_code == 200:
+                            delete_result = delete_response.json()
+                            
+                            if delete_result.get("success"):
+                                st.success(
+                                    f"삭제 완료: {delete_result['deleted_count']}개 chunk 삭제"
+                                )
+                                st.session_state.rag_documents = [
+                                    item
+                                    for item in st.session_state.rag_documents
+                                    if item["material_id"] != document["material_id"]
+                                ]
+                            else:
+                                st.error(delete_result.get("message", "삭제 실패"))
+                        else:
+                            st.error("삭제 요청에 실패했습니다.")
+                            st.write(delete_response.text)
+
+with tab5:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -471,7 +565,7 @@ with tab4:
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab5:
+with tab6:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
@@ -530,7 +624,7 @@ with tab5:
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
             
-with tab6:
+with tab7:
     st.header("시험 D-Day 계획")
     
     exam_date = st.date_input(
@@ -583,7 +677,7 @@ with tab6:
             st.error("복습 계획 요청에 실패했습니다.")
             st.write(response.text)
             
-with tab7:
+with tab8:
     st.header("문제 평가 요약")
     
     if st.button("내 평가 요약 불러오기"):
@@ -608,7 +702,7 @@ with tab7:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
             
-with tab8:
+with tab9:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     

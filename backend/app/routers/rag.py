@@ -45,3 +45,23 @@ def ask_document(request: schemas.RagAskRequest):
         question=request.question,
         top_k=request.top_k,
     )
+    
+    
+@router.get("/documents")
+def list_documents(
+    user_name: str | None = None,
+    subject: str | None = None,
+):
+    return rag_service.list_indexed_documents(
+        user_name=user_name,
+        subject=subject,
+    )
+    
+    
+@router.delete("/documents")
+def delete_document(request: schemas.RagDeleteRequest):
+    return rag_service.delete_indexed_document(
+        user_name=request.user_name,
+        subject=request.subject,
+        material_id=request.material_id,
+    )
