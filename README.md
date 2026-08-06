@@ -655,7 +655,7 @@ docker compose run --rm backend alembic upgrade head
 
 기존에는 Base.metadata.create_all()로 테이블을 자동 생성했지만, v2.5부터는 Alembic migration을 통해 DB 스키마를 관리합니다.
 
-## 9. 시연 흐름
+## 10. 시연 흐름
 
 1. 과목을 선택합니다.
 2. 공부 내용을 입력합니다.
@@ -666,7 +666,7 @@ docker compose run --rm backend alembic upgrade head
 7. 오답 개념이 저장됩니다.
 8. 복습 추천 화면에서 많이 틀린 개념을 확인합니다.
 
-## 10. 시연 화면
+## 11. 시연 화면
 
 ### 메인 화면
 
@@ -684,13 +684,10 @@ docker compose run --rm backend alembic upgrade head
 
 ![복습 추천](docs/images/review-recommendation.png)
 
-## 11. 향후 개선 사항
+## 12. 향후 개선 사항
 
-* PDF 업로드 기능
-* RAG 기반 강의자료 질의응답
 * 로그인 및 사용자별 학습 기록
 * 과목별 학습 통계
 * 시험 D-Day 기반 복습 계획
 * 문제 난이도 자동 조절
 * 스터디 그룹 공유 기능
-* AWS EC2 배포
