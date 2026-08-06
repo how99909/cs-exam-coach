@@ -1,21 +1,15 @@
-import os
 from typing import Any
 
 import chromadb
-from dotenv import load_dotenv
 from openai import OpenAI
 
-load_dotenv()
+from app.core.config import settings
 
-OpenAI_API_KEY = os.getenv("OPEN_API_KEY")
-CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
-CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8001"))
-
-client = OpenAI(api_key=OpenAI_API_KEY) if OpenAI_API_KEY else None
+client = OpenAI(api_key=settings.OpenAI_API_KEY) if settings.OpenAI_API_KEY else None
 
 chroma_client = chromadb.HttpClient(
-    host=CHROMA_HOST,
-    port=CHROMA_PORT
+    host=settings.CHROMA_HOST,
+    port=settings.CHROMA_PORT,
 )
 
 COLLECTION_NAME = "cs_exam_coach_documents"
@@ -64,7 +58,7 @@ def create_embedding(text: str) -> list[float]:
         raise RuntimeError("OPENAI_API_KEY is not set")
     
     response = client.embeddings.create(
-        model="text-embedding-3-small",
+        model=settings.OPENAI_EMBEDDING_MODEL,
         input=text,
     )
     
@@ -234,7 +228,7 @@ def answer_with_context(
 """
 
     response = client.chat.completions.create(
-        model="gpt-4.1-mini",
+        model=settings.OPENAI_CHAT_MODEL,
         messages=[
             {
                 "role": "system",

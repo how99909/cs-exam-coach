@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from app import rag_service, schemas
 
@@ -16,36 +16,51 @@ def index_document(request: schemas.RagIndexRequest):
             for page in request.pages
         ]
         
-        return rag_service.index_document_pages(
+        result = rag_service.index_document_pages(
             user_name=request.user_name,
             subject=request.subject,
             material_id=request.material_id,
             pages=pages,
         )
-        
-    if request.content:
-        return rag_service.index_document(
+    elif request.content:
+        result =  rag_service.index_document(
             user_name=request.user_name,
             subject=request.subject,
             material_id=request.material_id,
             content=request.content,
         )
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="content 또는 pages 중 하나는 필요합니다.",
+        )
         
-    return {
-        "success": False,
-        "message": "content 또는 pages 중 하나는 필요합니다."
-    }
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=400,
+            detail=result.get("message", "RAG 인덱싱에 실패했습니다."),
+        )
+        
+    return result
     
     
 @router.post("/ask")
 def ask_document(request: schemas.RagAskRequest):
-    return rag_service.answer_with_context(
+    result =  rag_service.answer_with_context(
         user_name=request.user_name,
         subject=request.subject,
         question=request.question,
         top_k=request.top_k,
         material_id=request.material_id,
     )
+    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=404,
+            detail=result.get("message", "RAG 답변 생성에 실패했습니다."),
+        )
+        
+    return result
     
     
 @router.get("/documents")
@@ -61,8 +76,16 @@ def list_documents(
     
 @router.delete("/documents")
 def delete_document(request: schemas.RagDeleteRequest):
-    return rag_service.delete_indexed_document(
+    result = rag_service.delete_indexed_document(
         user_name=request.user_name,
         subject=request.subject,
         material_id=request.material_id,
     )
+    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=404,
+            detail=result.get("message", "삭제할 RAG 문서를 찾지 못했습니다."),
+        )
+        
+    return result

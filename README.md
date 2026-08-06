@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v2.5
-주요 업데이트: Alembic 데이터베이스 마이그레이션 추가
+현재 버전: v2.6
+주요 업데이트: 백엔드 RAG와 피드백 구조 리팩토링
 
 ## 1. 프로젝트 개요
 
@@ -655,7 +655,31 @@ docker compose run --rm backend alembic upgrade head
 
 기존에는 Base.metadata.create_all()로 테이블을 자동 생성했지만, v2.5부터는 Alembic migration을 통해 DB 스키마를 관리합니다.
 
-## 10. 시연 흐름
+## 10. Backend Structure
+
+v2.6부터 백엔드 코드를 역할별로 분리했습니다.
+
+```text
+backend/app
+├─ core/
+│  └─ config.py          # 환경변수 및 설정 관리
+├─ routers/              # HTTP API 엔드포인트
+├─ rag_service.py         # RAG 인덱싱, 검색, 답변 생성 로직
+├─ crud_rag_feedback.py   # RAG 답변 평가 DB 로직
+├─ models.py              # SQLAlchemy DB 모델
+├─ schemas.py             # Pydantic 요청/응답 스키마
+├─ database.py            # DB 연결 및 세션 관리
+└─ main.py                # FastAPI 앱 진입점
+```
+
+### 구조 개선 내용
+
+- 환경변수 관리를 core/config.py로 통합
+- RAG API 실패 케이스를 HTTPException 기반으로 처리
+- RAG 답변 평가 DB 로직을 router에서 crud_rag_feedback.py로 분리
+- router는 HTTP 요청/응답 처리에 집중하도록 정리
+
+## 11. 시연 흐름
 
 1. 과목을 선택합니다.
 2. 공부 내용을 입력합니다.
@@ -666,7 +690,7 @@ docker compose run --rm backend alembic upgrade head
 7. 오답 개념이 저장됩니다.
 8. 복습 추천 화면에서 많이 틀린 개념을 확인합니다.
 
-## 11. 시연 화면
+## 12. 시연 화면
 
 ### 메인 화면
 
@@ -684,7 +708,7 @@ docker compose run --rm backend alembic upgrade head
 
 ![복습 추천](docs/images/review-recommendation.png)
 
-## 12. 향후 개선 사항
+## 13. 향후 개선 사항
 
 * 로그인 및 사용자별 학습 기록
 * 과목별 학습 통계
