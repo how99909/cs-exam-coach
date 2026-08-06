@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v2.4
-주요 업데이트: RAG 답변 평가 기능 추가
+현재 버전: v2.5
+주요 업데이트: Alembic 데이터베이스 마이그레이션 추가
 
 ## 1. 프로젝트 개요
 
@@ -627,6 +627,33 @@ docker compose up --build
 Frontend: http://localhost:8501
 Backend API Docs: http://localhost:8000/docs
 ```
+
+## 9. Database Migration
+
+이 프로젝트는 Alembic을 사용해 데이터베이스 스키마를 관리합니다.
+
+### 최초 실행
+
+```bash
+docker compose up -d db chroma
+docker compose run --rm backend alembic upgrade head
+docker compose up --build
+```
+
+### 모델 변경 후 migration 생성
+
+```bash
+docker compose run --rm backend alembic revision --autogenerate -m "Migration message"
+```
+
+### migration 적용
+```bash
+docker compose run --rm backend alembic upgrade head
+```
+
+### 주의 사항
+
+기존에는 Base.metadata.create_all()로 테이블을 자동 생성했지만, v2.5부터는 Alembic migration을 통해 DB 스키마를 관리합니다.
 
 ## 9. 시연 흐름
 
