@@ -24,12 +24,13 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(
     [
         "문제 생성", 
         "PDF 업로드", 
         "RAG 질의응답", 
         "RAG 문서 관리", 
+        "RAG 문제 생성",
         "복습 추천", 
         "학습 기록", 
         "시험 계획", 
@@ -688,6 +689,149 @@ with tab4:
                             st.write(delete_response.text)
 
 with tab5:
+    st.header("RAG 기반 예상문제 생성")
+    st.caption("인덱싱된 PDF 문서 chunk를 기반으로 예상문제를 생성합니다.")
+    
+    rag_q_subject = st.selectbox(
+        "문제 생성 과목",
+        ["알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="rag_q_subject",
+    )
+    
+    rag_q_scope = st.radio(
+        "문제 생성 범위",
+        ["과목 전체 문서", "특정 문서"],
+        key="rag_q_scope",
+    )
+    
+    selected_rag_q_material_id = None
+    
+    if rag_q_scope == "특정 문서":
+        if st.button("문제 생성 가능한 문서 목록 불러오기"):
+            response = requests.get(
+                f"{API_BASE_URL}/rag/documents",
+                params={
+                    "user_name": st.session_state.user_name,
+                    "subject": rag_q_subject,
+                },
+                timeout=30,
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                st.session_state.rag_q_documents = result.get("documents", [])
+                
+                if not st.session_state.rag_q_documents:
+                    st.info("인덱싱된 문서가 없습니다. 먼저 PDF를 인덱싱하세요.")
+            else:
+                st.error("문서 목록을 불러오지 못했습니다.")
+                st.write(response.text)
+                
+        if "rag_q_documents" not in st.session_state:
+            st.session_state.rag_q_documents = []
+            
+        if st.session_state.rag_q_documents:
+            material_options = {
+                f"material_id={doc['material_id']} / pages={doc['pages']} / chunks={doc['chunk_count']}": doc[
+                    "material_id"
+                ]
+                for doc in st.session_state.rag_q_documents
+            }
+            
+            selected_label = st.selectbox(
+                "문제 생성에 사용할 문서",
+                list(material_options.keys()),
+                key="rag_q_selected_material_label",
+            )
+            
+            selected_rag_q_material_id = material_options[selected_label]
+            
+    rag_q_type = st.selectbox(
+        "문제 유형",
+        ["short_answer", "multiple_choice", "coding", "true_false", "fill_in_the_blank", "essay"],
+        key="rag_q_type",
+    )
+    
+    rag_q_difficulty = st.selectbox(
+        "난이도",
+        ["easy", "medium", "hard", "exam_like"],
+        key="rag_q_difficulty",
+    )
+    
+    rag_q_count = st.slider(
+        "생성할 문제 수",
+        min_value=1,
+        max_value=10,
+        value=5,
+        key="rag_q_count",
+    )
+    
+    rag_q_top_k = st.slider(
+        "참고할 문서 chunk 수",
+        min_value=3,
+        max_value=20,
+        value=8,
+        key="rag_q_top_k",
+    )
+    
+    if st.button("RAG 기반 예상문제 생성하기"):
+        payload = {
+            "user_name": st.session_state.user_name,
+            "subject": rag_q_subject,
+            "question_type": rag_q_type,
+            "difficulty": rag_q_difficulty,
+            "count": rag_q_count,
+            "top_k": rag_q_top_k,
+        }
+        
+        if rag_q_scope == "특정 문서":
+            if selected_rag_q_material_id is None:
+                st.warning("특정 문서를 선택하세요.")
+                st.stop()
+                
+            payload["material_id"] = selected_rag_q_material_id
+            
+        response = requests.post(
+            f"{API_BASE_URL}/rag-questions/generate",
+            json=payload,
+            timeout=180,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            if result.get("success"):
+                st.success(f"{result['question_count']}개 문제가 생성되었습니다.")
+                
+                for question in result["questions"]:
+                    source = question.get("source") or {}
+                    
+                    with st.expander(
+                        f"Q{question['id']} / {question['concept']} "
+                        f"/ Page {source.get('page_number', 'unknown')}"
+                    ):
+                        st.write("문제")
+                        st.write(question["question"])
+                        
+                        st.write("정답")
+                        st.write(question["answer"])
+                        
+                        st.write("해설")
+                        st.write(question["explanation"])
+                        
+                        st.write("출처")
+                        st.write(
+                            f"material_id={source.get('material_id')}, "
+                            f"page={source.get('page_number')}, "
+                            f"chunk={source.get('chunk_index')}"
+                        )
+            else:
+                st.error(result.get("message", "문제 생성 실패"))
+        else:
+            st.error("RAG 기반 문제 생성 요청에 실패했습니다.")
+            st.write(response.text)
+
+with tab6:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -711,7 +855,7 @@ with tab5:
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab6:
+with tab7:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
@@ -770,7 +914,7 @@ with tab6:
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
             
-with tab7:
+with tab8:
     st.header("시험 D-Day 계획")
     
     exam_date = st.date_input(
@@ -823,7 +967,7 @@ with tab7:
             st.error("복습 계획 요청에 실패했습니다.")
             st.write(response.text)
             
-with tab8:
+with tab9:
     st.header("문제 평가 요약")
     
     if st.button("내 평가 요약 불러오기"):
@@ -848,7 +992,7 @@ with tab8:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
             
-with tab9:
+with tab10:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     
@@ -930,7 +1074,7 @@ with tab9:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
         
-with tab10:
+with tab11:
     st.header("RAG 답변 평가 요약")
     
     rag_feedback_subject = st.selectbox(

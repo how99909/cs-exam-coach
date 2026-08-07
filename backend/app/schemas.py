@@ -102,3 +102,13 @@ class RagAnswerFeedbackCreate(BaseModel):
     source_relevance_score: int
     helpfulness_score: int
     comment: str | None = None
+    
+    
+class RagQuestionGenerateRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str
+    material_id: int | None = None
+    question_type: str = "short_answer"
+    difficulty: str = "medium"
+    count: int = 5
+    top_k: int = 8

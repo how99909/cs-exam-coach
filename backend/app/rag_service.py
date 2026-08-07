@@ -450,3 +450,43 @@ def delete_indexed_document(
         "deleted_count": len(ids),
         "material_id": material_id,
     }
+    
+    
+def get_document_chunks_for_question_generation(
+    user_name: str,
+    subject: str,
+    material_id: int | None = None,
+    limit: int = 8,
+) -> list[dict[str, Any]]:
+    collection = get_collection()
+    
+    where_conditions = [
+        {"user_name": {"$eq": user_name}},
+        {"subject": {"$eq": subject}},
+    ]
+    
+    if material_id is not None:
+        where_conditions.append({"material_id": {"$eq": material_id}})
+        
+    where_filter = {"$and": where_conditions}
+    
+    results = collection.get(
+        where=where_filter,
+        include=["documents", "metadatas"],
+        limit=limit,
+    )
+    
+    documents = results.get("documents", [])
+    metadatas = results.get("metadatas", [])
+    
+    chunks = []
+    
+    for document, metadata in zip(documents, metadatas):
+        chunks.append(
+            {
+                "content": document,
+                "metadata": metadata,
+            }
+        )
+        
+    return chunks
