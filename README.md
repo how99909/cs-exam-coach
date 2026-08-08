@@ -15,76 +15,15 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 
 ## 3. 주요 기능
 
-- 과목별 공부 내용 입력
-- AI 기반 예상문제 생성
-- 객관식/단답형/서술형/코드추적형 등 문제 지원
-- 사용자 답안 채점
-- 오답 개념 저장
-- 오답 빈도 기반 복습 추천
-- Streamlit 기반 웹 UI
-- Docker Compose 기반 실행 환경 구성
-- 최근 생성 문제 조회
-- 최근 오답 기록 조회
-- 학습 기록 기반 복습 관리
-- 문제 난이도 선택
-- PDF 강의자료 업로드
-- PDF 텍스트 추출
-- 추출된 PDF 내용 기반 문제 생성
-- 사용자 이름 기반 학습 기록 분리
-- 사용자별 오답 저장
-- 사용자별 복습 추천
-- 사용자별 학습 기록 조회
-- 시험 D-Day 기반 복습 계획 생성
-- 사용자별 오답 개념을 바탕으로 복습 일정 추천
-- PDF 페이지 범위 선택
-- 선택한 페이지 범위 기반 텍스트 추출
-- 시험 범위 PDF 페이지만 선택하여 문제 생성
-- 문제별 품질 평가
-- 해설 품질 평가
-- 시험 적합도 평가
-- 난이도 적절성 평가
-- 사용자별 문제 평가 요약 조회
-- 관리자용 문제 품질 대시보드
-- 전체 평가 평균 조회
-- 낮은 품질 문제 목록 조회
-- 시험 적합도 낮은 문제 목록 조회
-- 최근 사용자 평가 코멘트 조회
-- RAG 기반 문서 질의응답
-- PDF 텍스트 chunk 분할
-- OpenAI Embedding 기반 벡터 검색
-- Chroma vector DB 저장
-- 문서 근거 기반 답변 생성
-- 참고한 문서 chunk 출처 표시
-- RAG 답변 source에 PDF 페이지 번호 표시
-- 페이지 단위 chunk metadata 저장
-- 선택한 PDF 페이지 범위 기반 RAG 인덱싱
-- RAG 인덱싱 문서 목록 조회
-- 사용자별/과목별 RAG 문서 필터링
-- 문서별 chunk 수 및 page 목록 확인
-- material_id 기준 RAG 인덱싱 문서 삭제
-- 문서별 RAG 질의응답
-- 과목 전체 문서 검색과 특정 PDF 문서 검색 선택
-- material_id 기준 검색 범위 제한
-- RAG 답변 평가
-- 답변 정확도 평가
-- 근거 충분성 평가
-- 출처 적합성 평가
-- 도움 여부 평가
-- 사용자별 RAG 평가 요약 조회
-- RAG 기반 예상문제 생성
-- 인덱싱된 PDF chunk 기반 문제 생성
-- 과목 전체 문서 또는 특정 PDF 문서 기준 문제 생성
-- 문제별 source page 표시
-- 약점 기반 RAG 복습 문제 생성
-- 사용자 오답 concept 분석
-- 오답 개념과 관련된 RAG chunk 검색
-- 개인화 복습 문제 생성
-- 문제별 source page 표시
-- 시험지 생성 기능
-- 사용자별/과목별 생성 문제 목록 조회
-- 선택 문제 기반 Markdown 시험지 생성
-- 정답 미포함 버전과 정답/해설 포함 버전 생성
-- Markdown 파일 다운로드
+- 직접 입력하거나 PDF에서 추출한 학습 자료로 AI 예상문제 생성
+- 객관식, 단답형, 서술형, 코드 추적형 등 다양한 문제 유형과 난이도 지원
+- AI 답안 채점, 피드백 저장, 오답 개념별 복습 우선순위 추천
+- 사용자 이름별 문제·오답 이력과 시험 D-Day 기반 복습 계획 관리
+- 문제·해설·시험 적합도·난이도 및 RAG 답변 품질 평가
+- PDF 페이지 단위 Chroma 인덱싱과 문서 근거 기반 RAG 질의응답
+- RAG 문서 또는 사용자 약점을 기반으로 한 개인화 예상문제 생성
+- 선택한 문제를 Markdown 시험지로 구성하고 정답·해설 포함 여부 선택
+- Streamlit UI, FastAPI API, PostgreSQL, Chroma를 포함한 Docker Compose 실행 환경
 
 ## 4. 제한사항
 
@@ -146,10 +85,8 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 
 ## 6. 시스템 구조
 
-사용자는 Streamlit 화면에서 공부 내용을 입력합니다.  
-Frontend는 FastAPI 서버에 문제 생성을 요청합니다.  
-FastAPI는 AI API를 호출해 문제와 정답, 해설, 개념 태그를 생성합니다.  
-생성된 문제와 사용자의 오답 기록은 PostgreSQL에 저장됩니다.  
+사용자는 Streamlit 화면에서 공부 내용을 입력하고, Frontend는 FastAPI 서버에 문제 생성을 요청합니다. FastAPI는 OpenAI API를 호출해 문제와 정답, 해설, 개념을 생성합니다. 생성된 문제와 사용자의 오답 기록은 PostgreSQL에 저장됩니다.
+
 복습 추천 API는 오답 개념 빈도를 집계하여 우선 복습할 개념을 반환합니다.
 
 ```text
@@ -162,30 +99,30 @@ FastAPI Backend
 PostgreSQL
 
 FastAPI Backend
- ↓
-OpenAI API
+ ├─ OpenAI API (문제 생성, 채점, 임베딩, RAG 답변)
+ └─ Chroma (문서 chunk 및 vector 검색)
 ```
 
 ## 7. 주요 API
+
+아래는 대표 API 사용 예시입니다. 전체 엔드포인트와 최신 요청 스키마는 실행 후 [Swagger UI](http://localhost:8000/docs)에서 확인할 수 있습니다.
+
+문제(`Question`)의 개념 필드는 `concept`입니다. 채점 결과와 오답 기록(`WrongAnswer`)은 기존 호환성을 위해 `concept_tag`를 사용합니다. 문제 난이도는 `easy`, `medium`, `hard`, `exam_like` 중 하나를 사용합니다.
 
 ### 1. 문제 생성 API
 
 `POST /questions/generate`
 
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-
 #### Request
 
 ```json
 {
+  "user_name": "user_a",
   "subject": "운영체제",
   "content": "프로세스는 실행 중인 프로그램이다...",
   "question_type": "short_answer",
-  "count": 5
+  "count": 5,
+  "difficulty": "medium"
 }
 ```
 
@@ -193,6 +130,7 @@ OpenAI API
 
 ```json
 {
+  "user_name": "user_a",
   "material_id": 1,
   "questions": [
     {
@@ -212,16 +150,11 @@ OpenAI API
 
 `POST /grading/grade`
 
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-
 #### Request
 
 ```json
 {
+  "user_name": "user_a",
   "question_id": 1,
   "question_text": "프로세스와 스레드의 차이를 설명하시오.",
   "correct_answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
@@ -416,6 +349,8 @@ Form Data:
 ```
 
 ### 9. 문제 평가 요약 API
+
+`GET /feedback/summary`
 
 #### Query Parameters
 
@@ -791,39 +726,53 @@ Form Data:
 
 ## 8. 실행 방법
 
+### 사전 요구사항
+
+- Docker 및 Docker Compose
+- OpenAI API key
+
 ### 1. 환경 변수 설정
 
 `backend/.env` 파일을 생성합니다.
 
 ```env
-DATABASE_URL=postgresql://postgres:postgres@db:5432/cs_exam_coach
+DATABASE_URL=postgresql://postgres:password@db:5432/cs_exam_coach
 OPENAI_API_KEY=your_openai_api_key
+OPENAI_CHAT_MODEL=gpt-4.1-mini
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
-### 2. Docker Compose 실행
+`DATABASE_URL`의 사용자명, 비밀번호, DB 이름은 `docker-compose.yml`의 PostgreSQL 설정과 같아야 합니다. 모델 환경변수는 생략하면 위 값이 기본으로 사용됩니다.
+
+### 2. DB와 Chroma 실행
+
+```bash
+docker compose up -d db chroma
+```
+
+### 3. DB migration 적용
+
+```bash
+docker compose run --rm backend alembic upgrade head
+```
+
+### 4. 전체 서비스 실행
 
 ```bash
 docker compose up --build
 ```
 
-### 3. 접속 주소
+### 5. 접속 주소
 
 ```text
 Frontend: http://localhost:8501
 Backend API Docs: http://localhost:8000/docs
+Backend OpenAPI JSON: http://localhost:8000/openapi.json
 ```
 
 ## 9. Database Migration
 
 이 프로젝트는 Alembic을 사용해 데이터베이스 스키마를 관리합니다.
-
-### 최초 실행
-
-```bash
-docker compose up -d db chroma
-docker compose run --rm backend alembic upgrade head
-docker compose up --build
-```
 
 ### 모델 변경 후 migration 생성
 
@@ -832,6 +781,7 @@ docker compose run --rm backend alembic revision --autogenerate -m "Migration me
 ```
 
 ### migration 적용
+
 ```bash
 docker compose run --rm backend alembic upgrade head
 ```
@@ -895,8 +845,9 @@ backend/app
 
 ## 13. 향후 개선 사항
 
-* 로그인 및 사용자별 학습 기록
-* 과목별 학습 통계
-* 시험 D-Day 기반 복습 계획
-* 문제 난이도 자동 조절
-* 스터디 그룹 공유 기능
+- 회원가입·로그인과 역할 기반 접근 제어
+- 과목별 학습 성과 및 난이도별 정답률 통계
+- 사용자 성취도에 따른 문제 난이도 자동 조절
+- OCR 기반 스캔 PDF 지원
+- PDF 시험지 출력, 자동 배점, 시험 시간 설정
+- 스터디 그룹 문제·시험지 공유
