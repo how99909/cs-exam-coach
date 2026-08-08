@@ -5,18 +5,27 @@ from openai import OpenAI
 
 from app.core.config import settings
 
-client = OpenAI(api_key=settings.OpenAI_API_KEY) if settings.OpenAI_API_KEY else None
+client = OpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
 
-chroma_client = chromadb.HttpClient(
-    host=settings.CHROMA_HOST,
-    port=settings.CHROMA_PORT,
-)
+chroma_client = None
 
 COLLECTION_NAME = "cs_exam_coach_documents"
 
 
+def get_chroma_client():
+    global chroma_client
+
+    if chroma_client is None:
+        chroma_client = chromadb.HttpClient(
+            host=settings.CHROMA_HOST,
+            port=settings.CHROMA_PORT,
+        )
+
+    return chroma_client
+
+
 def get_collection():
-    return chroma_client.get_or_create_collection(
+    return get_chroma_client().get_or_create_collection(
         name=COLLECTION_NAME,
         metadata={"description": "CS Exam Coach RAG document chunks"},
     )

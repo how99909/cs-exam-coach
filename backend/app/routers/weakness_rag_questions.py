@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app import ai_service,models, rag_service, schemas
+from app import ai_service, models, rag_service, schemas
 from app.database import get_db
 
 router = APIRouter(
@@ -17,7 +17,7 @@ def generate_weakness_rag_questions(
 ):
     weakness_rows = (
         db.query(
-            models.WrongAnswer.concept,
+            models.WrongAnswer.concept_tag,
             func.count(models.WrongAnswer.id).label("wrong_count"),
         )
         .filter(models.WrongAnswer.user_name == request.user_name)
@@ -35,7 +35,7 @@ def generate_weakness_rag_questions(
             detail="오답 기록이 없습니다. 먼저 문제를 풀고 오답을 저장하세요.",
         )
         
-    weakness_concepts = [row.concept for row in weakness_rows]
+    weakness_concepts = [row.concept_tag for row in weakness_rows]
     
     all_chunks = []
     seen_chunk_keys = set()
@@ -125,7 +125,7 @@ def generate_weakness_rag_questions(
         "message": "약점 기반 RAG 복습 문제가 생성되었습니다.",
         "weakness_concepts": [
             {
-                "concept": row.concept,
+                "concept": row.concept_tag,
                 "wrong_count": row.wrong_count,
             }
             for row in weakness_rows

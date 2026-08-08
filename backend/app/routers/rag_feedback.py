@@ -59,8 +59,8 @@ def get_rag_feedback_summary(
         "feedback_count": result.feedback_count,
         "avg_accuracy_score": round(float(result.avg_accuracy_score), 2),
         "avg_grounding_score": round(float(result.avg_grounding_score), 2),
-        "avg_score_relevance_score": round(
-            float(result.avg_score_relevance_score), 
+        "avg_source_relevance_score": round(
+            float(result.avg_source_relevance_score),
             2
         ),
         "avg_helpfulness_score": round(float(result.avg_helpfulness_score), 2),

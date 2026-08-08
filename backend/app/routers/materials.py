@@ -16,7 +16,9 @@ async def extract_pdf_text(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    if not file.filename.lower().endswith(".pdf"):
+    filename = file.filename or ""
+
+    if not filename.lower().endswith(".pdf"):
         return {
             "success": False,
             "message": "PDF 파일만 업로드 가능합니다.",
@@ -42,6 +44,12 @@ async def extract_pdf_text(
             return {
                 "success": False,
                 "message": f"끝 페이지는 PDF의 총 페이지 수({total_pages})를 초과할 수 없습니다.",
+            }
+
+        if start_page > end_page:
+            return {
+                "success": False,
+                "message": "시작 페이지는 끝 페이지보다 클 수 없습니다.",
             }
             
         extracted_pages = []
@@ -84,7 +92,7 @@ async def extract_pdf_text(
             "user_name": user_name,
             "material_id": material.id,
             "subject": subject,
-            "filename": file.filename,
+            "filename": filename,
             "page_count": len(reader.pages),
             "selected_start_page": start_page,
             "selected_end_page": end_page,

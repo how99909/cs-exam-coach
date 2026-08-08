@@ -1,6 +1,18 @@
 from fastapi import FastAPI
 
-from app.routers import questions, grading, review, history, materials, feedback, rag, rag_feedback, rag_questions, weakness_rag_questions, exam_papers
+from app.routers import (
+    exam_papers,
+    feedback,
+    grading,
+    history,
+    materials,
+    questions,
+    rag,
+    rag_feedback,
+    rag_questions,
+    review,
+    weakness_rag_questions,
+)
 
 # Base.metadata.create_all(bind=engine)
 
@@ -24,4 +36,7 @@ app.include_router(exam_papers.router)
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to the CS Exam Coach API!"}
+    return {
+        "message": "Welcome to the CS Exam Coach API!",
+        "version": "0.2.9",
+    }

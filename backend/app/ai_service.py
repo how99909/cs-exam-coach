@@ -1,17 +1,11 @@
 import json
-import os
 
-from dotenv import load_dotenv
 from openai import OpenAI
 from typing import Any
 
 from app.core.config import settings
 
-load_dotenv()
-
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+client = OpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
 
 SUBJECT_GUIDES = {
     "알고리즘": """

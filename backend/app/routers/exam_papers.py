@@ -56,7 +56,7 @@ def generate_exam_paper(
         
     questions = (
         db.query(models.Question)
-        .join(models.StudyMaterial, models.Question.material_id == models.StudyMaterial)
+        .join(models.StudyMaterial, models.Question.material_id == models.StudyMaterial.id)
         .filter(models.StudyMaterial.user_name == request.user_name)
         .filter(models.StudyMaterial.subject == request.subject)
         .filter(models.Question.id.in_(request.question_ids))
@@ -67,6 +67,15 @@ def generate_exam_paper(
         raise HTTPException(
             status_code=404,
             detail="선택한 문제를 찾지 못했습니다.",
+        )
+
+    found_question_ids = {question.id for question in questions}
+    missing_question_ids = sorted(set(request.question_ids) - found_question_ids)
+
+    if missing_question_ids:
+        raise HTTPException(
+            status_code=404,
+            detail=f"접근할 수 없는 question_ids: {missing_question_ids}",
         )
         
     question_order = {question_id: index for index, question_id in enumerate(request.question_ids)}
@@ -90,7 +99,7 @@ def generate_exam_paper(
         paper_lines.append(f"**난이도:** {question.difficulty}")
         paper_lines.append(f"**개념:** {question.concept}")
         paper_lines.append("")
-        paper_lines(question.question_text)
+        paper_lines.append(question.question_text)
         paper_lines.append("")
         
         if request.include_answers:
@@ -102,7 +111,7 @@ def generate_exam_paper(
         if request.include_explanations:
             paper_lines.append("### 해설")
             paper_lines.append("")
-            paper_lines.append(question.explanation)
+            paper_lines.append(question.explanation or "")
             paper_lines.append("")
             
         paper_lines.append("---")

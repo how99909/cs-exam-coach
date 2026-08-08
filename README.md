@@ -3,7 +3,7 @@
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
 현재 버전: v2.9
-주요 업데이트: 시험지 생성 기능 추가
+주요 업데이트: 문제 난이도 저장, 문제 개념 필드 통일, 시험지 생성 안정화
 
 ## 1. 프로젝트 개요
 
@@ -196,12 +196,13 @@ OpenAI API
   "material_id": 1,
   "questions": [
     {
-      "id": 1,
+      "question_id": 1,
       "question_text": "프로세스와 스레드의 차이를 설명하시오.",
       "answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
       "explanation": "스레드는 같은 프로세스의 메모리 공간을 공유한다.",
       "concept": "프로세스와 스레드",
-      "question_type": "short_answer"
+      "question_type": "short_answer",
+      "difficulty": "medium"
     }
   ]
 }
@@ -283,6 +284,7 @@ OpenAI API
     "explanation": "같은 프로세스의 스레드는 메모리 공간과 자원을 공유한다.",
     "concept": "프로세스와 스레드",
     "question_type": "short_answer",
+    "difficulty": "medium",
     "created_at": "2026-07-30T17:45:12.123456"
   }
 ]

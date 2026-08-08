@@ -24,7 +24,7 @@ class Question(Base):
     explanation = Column(Text, nullable=True)
     concept = Column(String(100), nullable=True)
     question_type = Column(String(50), nullable=False)
-    difficulty = Column(String(50), nullable=False, default="exam_like")
+    difficulty = Column(String(50), nullable=False, default="medium")
     created_at = Column(DateTime, default=datetime.utcnow)
     
     
