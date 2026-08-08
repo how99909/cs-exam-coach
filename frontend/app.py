@@ -24,14 +24,15 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13 = st.tabs(
     [
         "문제 생성", 
         "PDF 업로드", 
         "RAG 질의응답", 
         "RAG 문서 관리", 
         "RAG 문제 생성",
-        "약점 RAG 문제"
+        "약점 RAG 문제",
+        "시험지 생성",
         "복습 추천", 
         "학습 기록", 
         "시험 계획", 
@@ -127,7 +128,7 @@ with tab1:
                         "question_text": question["question_text"],
                         "correct_answer": question["answer"],
                         "user_answer": user_answer,
-                        "concept_tag": question.get("concept_tag"),
+                        "concept_tag": question.get("concept"),
                     },
                     timeout=60,
                 )
@@ -991,6 +992,131 @@ with tab6:
             st.write(response.text)
 
 with tab7:
+    st.header("시험지 생성")
+    st.caption("생성된 문제를 선택해 Markdown 시험지를 만듭니다.")
+    
+    exam_subject = st.selectbox(
+        "시험지 과목",
+        ["알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="exam_subject",
+    )
+    
+    exam_limit = st.slider(
+        "불러올 최근 문제 수",
+        min_value=10,
+        max_value=100,
+        value=50,
+        key="exam_limit",
+    )
+    
+    if "exam_questions" not in st.session_state:
+        st.session_state.exam_questions = []
+        
+    if st.button("시험제용 문제 목록 불러오기"):
+        response = requests.get(
+            f"{API_BASE_URL}/exam-papers/questions",
+            params={
+                "user_name": st.session_state.user_name,
+                "subject": exam_subject,
+                "limit": exam_limit,
+            },
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            st.session_state.exam_questions = result.get("questions", [])
+            
+            if not st.session_state.exam_questions:
+                st.info("불러올 문제가 없습니다. 먼저 문제를 생성하세요.")
+            else:
+                st.success(f"{result['question_count']}개 문제를 불러왔습니다.")
+        else:
+            st.error("문제 목록을 불러오지 못했습니다.")
+            st.write(response.text)
+            
+    if st.session_state.exam_questions:
+        st.subheader("시험지에 넣을 문제 선택")
+        
+        selected_question_ids = []
+        
+        for question in st.session_state.exam_questions:
+            label = (
+                f"Q{question['id']} / {question['concept']} "
+                f"/ {question['question_type']} / {question['difficulty']}"
+            )
+            
+            checked = st.checkbox(
+                label,
+                key=f"exam_question_{question['id']}",
+            )
+            
+            with st.expander(f"문제 미리보기 Q{question['id']}"):
+                st.write(question["question"])
+                st.caption(f"개념: {question['concept']}")
+                
+            if checked:
+                selected_question_ids.append(question["id"])
+                
+        st.divider()
+        
+        exam_title = st.text_input(
+            "시험지 제목",
+            value=f"{exam_subject} 연습 시험지",
+            key="exam_title",
+        )
+        
+        include_answers = st.checkbox(
+            "정답 포함",
+            value=False,
+            key="include_answers",
+        )
+        
+        include_explanations = st.checkbox(
+            "해설 포함",
+            value=False,
+            key="include_explanations",
+        )
+        
+        if st.button("시험지 생성하기"):
+            if not selected_question_ids:
+                st.warning("시험지에 포함할 문제를 선택하세요.")
+            else:
+                response = requests.post(
+                    f"{API_BASE_URL}/exam-papers/generate",
+                    json={
+                        "user_name": st.session_state.user_name,
+                        "subject": exam_subject,
+                        "question_ids": selected_question_ids,
+                        "title": exam_title,
+                        "include_answers": include_answers,
+                        "include_explanations": include_explanations,
+                    },
+                    timeout=60,
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    if result.get("success"):
+                        st.success("시험지가 생성되었습니다.")
+                        
+                        st.subheader("시험지 미리보기")
+                        st.markdown(result["markdown"])
+                        
+                        st.download_button(
+                            label="Markdown 시험지 다운로드",
+                            data=result["markdown"],
+                            file_name=f"{exam_title}.md",
+                            mime="text/markdown",
+                        )
+                    else:
+                        st.error(result.get("message", "시험지 생성 실패"))
+                else:
+                    st.error("시험지 생성 요청에 실패했습니다.")
+                    st.write(response.text)
+
+with tab8:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -1014,7 +1140,7 @@ with tab7:
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab8:
+with tab9:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
@@ -1031,7 +1157,7 @@ with tab8:
                 st.info("최근 생성된 문제가 없습니다.")
             else:
                 for question in questions:
-                    with st.expander(f"[{question['question_type']}] {question['concept_tag']}"):
+                    with st.expander(f"[{question['question_type']}] {question['concept']}"):
                         st.write("**문제**")
                         st.write(question["question_text"])
                         
@@ -1073,7 +1199,7 @@ with tab8:
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
             
-with tab9:
+with tab10:
     st.header("시험 D-Day 계획")
     
     exam_date = st.date_input(
@@ -1126,7 +1252,7 @@ with tab9:
             st.error("복습 계획 요청에 실패했습니다.")
             st.write(response.text)
             
-with tab10:
+with tab11:
     st.header("문제 평가 요약")
     
     if st.button("내 평가 요약 불러오기"):
@@ -1151,7 +1277,7 @@ with tab10:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
             
-with tab11:
+with tab12:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     
@@ -1233,7 +1359,7 @@ with tab11:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
         
-with tab12:
+with tab13:
     st.header("RAG 답변 평가 요약")
     
     rag_feedback_subject = st.selectbox(

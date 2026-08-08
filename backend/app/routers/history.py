@@ -33,8 +33,9 @@ def get_recent_questions(
             "question_text": question.question_text,
             "answer": question.answer,
             "explanation": question.explanation,
-            "concept_tag": question.concept_tag,
+            "concept": question.concept,
             "question_type": question.question_type,
+            "difficulty": question.difficulty,
             "created_at": question.created_at,
         }
         for question, material in questions

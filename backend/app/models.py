@@ -12,7 +12,7 @@ class StudyMaterial(Base):
     subject = Column(String(100), nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     
 class Question(Base):
     __tablename__ = "questions"
@@ -22,8 +22,9 @@ class Question(Base):
     question_text = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
     explanation = Column(Text, nullable=True)
-    concept_tag = Column(String(100), nullable=True)
+    concept = Column(String(100), nullable=True)
     question_type = Column(String(50), nullable=False)
+    difficulty = Column(String(50), nullable=False, default="exam_like")
     created_at = Column(DateTime, default=datetime.utcnow)
     
     
@@ -70,4 +71,3 @@ class RagAnswerFeedback(Base):
     helpfulness_score = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    

@@ -115,7 +115,7 @@ def generate_questions(
                 "question_text": f"{subject}의 핵심 개념을 설명하시오.", 
                 "answer": "이것은 예시 답변입니다.",
                 "explanation": "더미 해설입니다.",
-                "concept_tag": "예시 개념 태그",
+                "concept": "예시 개념 태그",
                 "question_type": question_type,
             }
         ]
@@ -150,7 +150,7 @@ def generate_questions(
 question_text: 문제
 answer: 정답
 explanation: 해설
-concept_tag: 핵심 개념 태그
+concept: 핵심 개념
 question_type: 문제 유형
 """
 
@@ -173,7 +173,7 @@ question_type: 문제 유형
                 "question_text": "AI 응답 파싱 실패",
                 "answer": text,
                 "explanation": "AI 응답을 JSON으로 파싱하는 데 실패했습니다.",
-                "concept_tag": "파싱 오류",
+                "concept": "파싱 오류",
                 "question_type": question_type,
             }
         ]

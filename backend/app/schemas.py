@@ -20,8 +20,9 @@ class QuestionResponse(BaseModel):
     question_text: str
     answer: str
     explanation: str
-    concept_tag: str
+    concept: str
     question_type: str
+    difficulty: str
 
 
 class GradeRequest(BaseModel):
@@ -123,3 +124,12 @@ class WeaknessRagQuestionRequest(BaseModel):
     question_type: str = "short_answer"
     difficulty: str = "exam_like"
     top_k_per_concept: int = 3
+
+
+class ExamPaperGenerateRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str
+    question_ids: list[int]
+    title: str = "CS Exam Coach Practice Test"
+    include_answers: bool = False
+    include_explanations: bool = False

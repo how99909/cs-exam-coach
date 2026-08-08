@@ -37,8 +37,9 @@ def generate_questions(
             question_text=item.get("question_text", ""),
             answer=item.get("answer", ""),
             explanation=item.get("explanation", ""),
-            concept_tag=item.get("concept_tag", ""),
+            concept=item.get("concept", item.get("concept_tag", "")),
             question_type=item.get("question_type", request.question_type),
+            difficulty=request.difficulty,
         )
         
         db.add(question)
@@ -51,8 +52,9 @@ def generate_questions(
                 "question_text": question.question_text,
                 "answer": question.answer,
                 "explanation": question.explanation,
-                "concept_tag": question.concept_tag,
+                "concept": question.concept,
                 "question_type": question.question_type,
+                "difficulty": question.difficulty,
             }
         )
         

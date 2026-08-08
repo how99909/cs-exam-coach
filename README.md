@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v2.8
-주요 업데이트: 약점 기반 RAG 문제 생겅 기능 추가
+현재 버전: v2.9
+주요 업데이트: 시험지 생성 기능 추가
 
 ## 1. 프로젝트 개요
 
@@ -80,6 +80,11 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 오답 개념과 관련된 RAG chunk 검색
 - 개인화 복습 문제 생성
 - 문제별 source page 표시
+- 시험지 생성 기능
+- 사용자별/과목별 생성 문제 목록 조회
+- 선택 문제 기반 Markdown 시험지 생성
+- 정답 미포함 버전과 정답/해설 포함 버전 생성
+- Markdown 파일 다운로드
 
 ## 4. 제한사항
 
@@ -109,6 +114,9 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 약점 기반 RAG 문제 생성은 기존 오답 기록이 있어야 동작합니다.
 - 오답 concept 품질이 낮으면 약점 분석 정확도도 낮아질 수 있습니다.
 - 현재 약점 개념은 단순 오답 빈도 기준으로 집계합니다.
+- v2.9 시험지는 Markdown 형식으로 생성됩니다.
+- PDF 시험지 출력은 아직 지원하지 않습니다.
+- 객관식 보기 섞기, 자동 배점, 시험 시간 설정은 아직 지원하지 않습니다.
 
 ## 5. 기술 스택
 
@@ -192,7 +200,7 @@ OpenAI API
       "question_text": "프로세스와 스레드의 차이를 설명하시오.",
       "answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
       "explanation": "스레드는 같은 프로세스의 메모리 공간을 공유한다.",
-      "concept_tag": "프로세스와 스레드",
+      "concept": "프로세스와 스레드",
       "question_type": "short_answer"
     }
   ]
@@ -273,7 +281,7 @@ OpenAI API
     "question_text": "프로세스와 스레드의 차이를 설명하시오.",
     "answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
     "explanation": "같은 프로세스의 스레드는 메모리 공간과 자원을 공유한다.",
-    "concept_tag": "프로세스와 스레드",
+    "concept": "프로세스와 스레드",
     "question_type": "short_answer",
     "created_at": "2026-07-30T17:45:12.123456"
   }
@@ -713,6 +721,69 @@ Form Data:
       }
     }
   ]
+}
+```
+
+### 19. 시험지용 문제 목록 조회 API
+
+`GET /exam-papers/questions`
+
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
+| subject | 과목명 |
+| limit | 조회할 최근 문제 수 |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "question_count": 2,
+  "questions": [
+    {
+      "id": 1,
+      "question": "프로세스와 스레드의 차이를 설명하시오.",
+      "answer": "프로세스는...",
+      "explanation": "해설...",
+      "concept": "프로세스와 스레드",
+      "question_type": "short_answer",
+      "difficulty": "exam_like"
+    }
+  ]
+}
+```
+
+### 20. 시험지 생성 API
+
+`POST /exam-papers/generate`
+
+#### Request
+
+```json
+{
+  "user_name": "user_a",
+  "subject": "운영체제",
+  "question_ids": [1, 2, 3],
+  "title": "운영체제 중간고사 대비 연습 시험지",
+  "include_answers": false,
+  "include_explanations": false
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "시험지가 생성되었습니다.",
+  "title": "운영체제 중간고사 대비 연습 시험지",
+  "question_count": 3,
+  "include_answers": false,
+  "include_explanations": false,
+  "markdown": "# 운영체제 중간고사 대비 연습 시험지..."
 }
 ```
 

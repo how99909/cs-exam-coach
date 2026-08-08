@@ -98,8 +98,9 @@ def generate_weakness_rag_questions(
             question_text=item.get("question", ""),
             answer=item.get("answer", ""),
             explanation=item.get("explanation", ""),
-            concept_tag=item.get("concept", ""),
+            concept=item.get("concept", ""),
             question_type=request.question_type,
+            difficulty=request.difficulty,
         )
         
         db.add(question)
@@ -112,9 +113,9 @@ def generate_weakness_rag_questions(
                 "question": question.question_text,
                 "answer": question.answer,
                 "explanation": question.explanation,
-                "concept": question.concept_tag,
+                "concept": question.concept,
                 "question_type": question.question_type,
-                "difficulty": request.difficulty,
+                "difficulty": question.difficulty,
                 "source": item.get("source"),
             }
         )
