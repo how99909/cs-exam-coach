@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v3.0
-주요 업데이트: 시험 응시 모드 추가
+현재 버전: v3.1
+주요 업데이트: 시험 분석 대시보드 추가
 
 ## 1. 프로젝트 개요
 
@@ -32,6 +32,11 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 문항별 피드백 제공
 - 오답 자동 저장
 - 응시 기록 조회
+- 응시 결과 분석 대시보드
+- 최근 응시 기록 기반 평균 점수 계산
+- 최근 점수 변화 시각화
+- concept별 취약 개념 랭킹
+- 과목별 응시 요약
 
 ## 4. 제한사항
 
@@ -67,6 +72,9 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 응시 모드의 채점은 AI 기반 평가이므로 실제 교수자의 채점과 다를 수 있습니다.
 - 현재 제한 시간, 임시 저장, 객관식 보기 섞기는 지원하지 않습니다.
 - 오답 저장은 자동으로 수행되지만, concept 품질은 생성된 문제의 concept 값에 의존합니다.
+- 응시 분석은 저장된 응시 기록을 기반으로 계산됩니다.
+- concept별 취약 개념은 문제 생성 시 저장된 concept 값의 품질에 영향을 받습니다.
+- 현재 분석은 최근 N개 응시 기록 기준입니다.
 
 ## 5. 기술 스택
 
@@ -792,6 +800,55 @@ Form Data:
 | user_name | 사용자 이름 |
 | subject | 과목명, 선택 |
 | limit | 조회할 최근 응시 기록 수 |
+
+### 23. 응시 결과 분석 API
+
+`GET /exam-attempts/analytics`
+
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
+| subject | 과목명, 선택 |
+| limit | 분석할 최근 응시 기록 수 |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "attempt_count": 5,
+  "average_score": 76.0,
+  "latest_score": 80,
+  "score_trend": [
+    {
+      "attempt_id": 1,
+      "title": "운영체제 연습 응시",
+      "subject": "운영체제",
+      "score": 80,
+      "correct_count": 4,
+      "total_questions": 5,
+      "created_at": "2026-08-08T12:00:00"
+    }
+  ],
+  "weak_concepts": [
+    {
+      "concept": "프로세스와 스레드",
+      "wrong_count": 3
+    }
+  ],
+  "subject_summary": [
+    {
+      "subject": "운영체제",
+      "attempt_count": 3,
+      "avg_score": 78.33,
+      "max_score": 90,
+      "min_score": 60
+    }
+  ]
+}
+```
 
 ## 8. 실행 방법
 
