@@ -354,3 +354,135 @@ def generate_question_from_rag_chunks(
         )
         
     return enriched_questions
+
+
+def generate_weakness_questions_from_rag_chunks(
+    subject: str,
+    weakness_concepts: list[str],
+    chunks: list[dict[str, Any]],
+    question_type: str = "short_answer",
+    difficulty: str = "exam_like",
+    count: int = 5,
+) -> list[dict[str, Any]]:
+    if client is None:
+        return [
+            {
+                "question": "약점 기반 RAG 예시 문제입니다. OPENAI_API_KEY를 설정하면 실제 문제가 생성됩니다.",
+                "answer": "예시 정답입니다.",
+                "explanation": "예시 해설입니다.",
+                "concept": weakness_concepts[0] if weakness_concepts else "RAG",
+                "source": {
+                    "material_id": chunks[0]["metadata"].get("material_id") if chunks else None,
+                    "page_number": chunks[0]["metadata"].get("page_number") if chunks else None,
+                    "chunk_index": chunks[0]["metadata"].get("chunk_index") if chunks else None,
+                }
+            }
+        ]
+        
+    context_text = "\n\n".join(
+        [
+            (
+                f"[Source {index + 1} | "
+                f"material_id={chunk['metadata'].get('material_id')} | "
+                f"page={chunk['metadata'].get('page_number')} | "
+                f"chunk={chunk['metadata'].get('chunk_index')}]\n"
+                f"{chunk['content']}"
+            )
+            for index, chunk in enumerate(chunks)
+        ]
+    )
+    
+    weakness_text = ", ".join(weakness_concepts)
+    
+    prompt = f"""
+너는 컴퓨터공학 전공 시험 대비를 돕는 AI 튜터다.
+
+사용자의 약점 개념은 다음과 같다:
+{weakness_text}
+
+아래 문서 근거만 사용해서 약점 보강용 예상문제 {count}개를 생성하라.
+각 문제는 사용자의 약점 개념 중 하나와 연결되어야 한다.
+문서에 없는 내용을 추측해서 문제로 만들지 마라.
+각 문제는 반드시 어떤 Source를 근거로 만들었는지 포함하라.
+
+과목: {subject}
+문제 유형: {question_type}
+난이도: {difficulty}
+
+문서 근거:
+{context_text}
+
+반드시 아래 JSON 배열 형식으로만 응답하라.
+마크다운 코드블록은 사용하지 마라.
+
+[
+  {{
+    "question": "문제 내용",
+    "answer": "정답",
+    "explanation": "해설",
+    "concept": "약점 개념",
+    "source_number": 1
+  }}
+]
+"""
+
+    response = client.chat.completions.create(
+        model=settings.OPENAI_CHAT_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": "너는 문서 근거와 사용자 오답 개념을 기반으로 복습 문제를 생성하는 컴퓨터소프트웨어학 튜터다.",
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
+        temperature=0.25,
+    )
+    
+    content = response.choices[0].message.content
+    
+    try:
+        questions = json.loads(content)
+    except json.JSONDecodeError:
+        return [
+            {
+                "question": content,
+                "answer": "JSON 파싱 실패",
+                "explanation": "AI 응답이 JSON 배열 형식이 아니었습니다.",
+                "concept": "format_error",
+                "source": None,
+            }
+        ]
+        
+    enriched_questions = []
+    
+    for item in questions:
+        source_number = item.get("source_number", 1)
+        
+        try:
+            source_index = int(source_number) - 1
+        except (TypeError, ValueError):
+            source_index = 0
+            
+        if source_index < 0 or source_index >= len(chunks):
+            source_index = 0
+            
+        source_chunk = chunks[source_index]
+        
+        enriched_questions.append(
+            {
+                "question": item.get("question", ""),
+                "answer": item.get("answer", ""),
+                "explanation": item.get("explanation", ""),
+                "concept": item.get("concept", ""),
+                "source": {
+                    "material_id": source_chunk["metadata"].get("material_id"),
+                    "page_number": source_chunk["metadata"].get("page_number"),
+                    "chunk_index": source_chunk["metadata"].get("chunk_index"),
+                },
+            }
+        )
+        
+    return enriched_questions

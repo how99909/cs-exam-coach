@@ -112,3 +112,14 @@ class RagQuestionGenerateRequest(BaseModel):
     difficulty: str = "medium"
     count: int = 5
     top_k: int = 8
+    
+    
+class WeaknessRagQuestionRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str
+    material_id: int | None = None
+    weakness_count: int = 3
+    question_count: int = 5
+    question_type: str = "short_answer"
+    difficulty: str = "exam_like"
+    top_k_per_concept: int = 3

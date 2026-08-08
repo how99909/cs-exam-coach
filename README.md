@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v2.7
-주요 업데이트: RAG 기반 질문 생성 기능 추가
+현재 버전: v2.8
+주요 업데이트: 약점 기반 RAG 문제 생겅 기능 추가
 
 ## 1. 프로젝트 개요
 
@@ -75,6 +75,11 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 인덱싱된 PDF chunk 기반 문제 생성
 - 과목 전체 문서 또는 특정 PDF 문서 기준 문제 생성
 - 문제별 source page 표시
+- 약점 기반 RAG 복습 문제 생성
+- 사용자 오답 concept 분석
+- 오답 개념과 관련된 RAG chunk 검색
+- 개인화 복습 문제 생성
+- 문제별 source page 표시
 
 ## 4. 제한사항
 
@@ -91,7 +96,6 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 현재 RAG는 텍스트 추출 가능한 PDF만 지원합니다.
 - 현재 source는 PDF 페이지 번호와 chunk 번호를 기준으로 표시됩니다.
 - PDF 텍스트 추출 품질에 따라 page metadata 정확도가 달라질 수 있습니다.
-- 스캔본 PDF는 OCR을 지원하지 않아 페이지 기반 RAG 품질이 제한될 수 있습니다.
 - RAG 문서 삭제는 Chroma Vector DB의 chunk만 삭제합니다.
 - PostgreSQL의 StudyMaterial 기록은 유지됩니다.
 - 현재 문서 삭제는 사용자 이름, 과목, material_id 기준으로 동작합니다.
@@ -102,6 +106,9 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - RAG 기반 문제 생성은 Chroma에 인덱싱된 chunk를 기반으로 동작합니다.
 - source는 문제 생성에 참고한 chunk 기준이며, 문제 전체의 완전한 근거를 보장하지는 않습니다.
 - 동일한 chunk에서 유사 문제가 반복 생성될 수 있습니다.
+- 약점 기반 RAG 문제 생성은 기존 오답 기록이 있어야 동작합니다.
+- 오답 concept 품질이 낮으면 약점 분석 정확도도 낮아질 수 있습니다.
+- 현재 약점 개념은 단순 오답 빈도 기준으로 집계합니다.
 
 ## 5. 기술 스택
 
@@ -640,6 +647,59 @@ Form Data:
   "questions": [
     {
       "id": 10,
+      "question": "프로세스와 스레드의 차이를 설명하시오.",
+      "answer": "프로세스는...",
+      "explanation": "문서에서는...",
+      "concept": "프로세스와 스레드",
+      "question_type": "short_answer",
+      "difficulty": "exam_like",
+      "source": {
+        "material_id": 1,
+        "page_number": 12,
+        "chunk_index": 0
+      }
+    }
+  ]
+}
+```
+
+### 18. 약점 기반 RAG 복습 문제 생성 API
+
+`POST /weakness-rag-questions/generate`
+
+#### Request
+
+```json
+{
+  "user_name": "user_a",
+  "subject": "운영체제",
+  "material_id": 1,
+  "weakness_count": 3,
+  "question_count": 5,
+  "question_type": "short_answer",
+  "difficulty": "exam_like",
+  "top_k_per_concept": 3
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "약점 기반 RAG 복습 문제가 생성되었습니다.",
+  "weakness_concepts": [
+    {
+      "concept": "프로세스와 스레드",
+      "wrong_count": 3
+    }
+  ],
+  "used_chunk_count": 6,
+  "question_count": 5,
+  "material_id": 1,
+  "questions": [
+    {
+      "id": 21,
       "question": "프로세스와 스레드의 차이를 설명하시오.",
       "answer": "프로세스는...",
       "explanation": "문서에서는...",

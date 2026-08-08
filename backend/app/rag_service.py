@@ -490,3 +490,19 @@ def get_document_chunks_for_question_generation(
         )
         
     return chunks
+
+
+def retrieve_chunks_by_concept(
+    user_name: str,
+    subject: str,
+    concept: str,
+    material_id: int | None = None,
+    top_k: int = 3,
+) -> list[dict[str, Any]]:
+    return retrieve_chunks(
+        user_name=user_name,
+        subject=subject,
+        question=concept,
+        top_k=top_k,
+        material_id=material_id,
+    )

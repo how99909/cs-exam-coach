@@ -24,13 +24,14 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12 = st.tabs(
     [
         "문제 생성", 
         "PDF 업로드", 
         "RAG 질의응답", 
         "RAG 문서 관리", 
         "RAG 문제 생성",
+        "약점 RAG 문제"
         "복습 추천", 
         "학습 기록", 
         "시험 계획", 
@@ -832,6 +833,164 @@ with tab5:
             st.write(response.text)
 
 with tab6:
+    st.header("약점 기반 RAG 복습 문제")
+    st.caption("사용자의 오답 개념을 분석하고, 관련 문서 chunk를 찾아 복습 문제를 생성합니다.")
+    
+    weak_subject = st.selectbox(
+        "약점 문제 생성 과목",
+        ["알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="weak_rag_subject",
+    )
+    
+    weak_scope = st.radio(
+        "문제 생성 범위",
+        ["과목 전체 문서", "특정 문서"],
+        key="weak_rag_scope",
+    )
+    
+    selected_weak_material_id = None
+    
+    if weak_scope == "특정 문서":
+        if st.button("약점 문제용 문서 목록 불러오기"):
+            response = requests.get(
+                f"{API_BASE_URL}/rag/documents",
+                params={
+                    "user_name": st.session_state.user_name,
+                    "subject": weak_subject,
+                },
+                timeout=30,
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                st.session_state.weak_rag_documents = result.get("documents", [])
+                
+                if not st.session_state.weak_rag_documents:
+                    st.info("인덱싱된 문서가 없습니다. 먼저 PDF를 인덱싱하세요.")
+            else:
+                st.error("문서 목록을 불렁지 못했습니다.")
+                st.write(response.text)
+                
+        if "weak_rag_documents" not in st.session_state:
+            st.session_state.weak_rag_documents = []
+            
+        if st.session_state.weak_rag_documents:
+            material_options = {
+                f"material_id={doc['material_id']} / pages={doc['pages']} / chunks={doc['chunk_count']}": doc[
+                    "material_id"
+                ]
+                for doc in st.session_state.weak_rag_documents
+            }
+            
+            selected_label = st.selectbox(
+                "약점 문제 생성에 사용할 문서",
+                list(material_options.keys()),
+                key="weak_selected_material_label",
+            )
+            
+            selected_weak_material_id = material_options[selected_label]
+            
+    weakness_count = st.slider(
+        "분석할 약점 개념 수",
+        min_value=1,
+        max_value=5,
+        value=3,
+        key="weakness_count",
+    )
+    
+    weak_question_count =st.slider(
+        "생성할 복습 문제 수",
+        min_value=1,
+        max_value=10,
+        value=5,
+        key="weak_question_count",
+    )
+    
+    weak_question_type = st.selectbox(
+        "문제 유형",
+        ["short_answer", "multiple_choice", "coding", "true_false", "fill_in_the_blank", "essay"],
+        key="weak_question_type",
+    )
+    
+    weak_difficulty = st.selectbox(
+        "난이도",
+        ["easy", "medium", "hard", "exam_like"],
+        index=3,
+        key="weak_difficulty",
+    )
+    
+    top_k_per_concept = st.slider(
+        "약점 개념별 검색 chunk 수",
+        min_value=1,
+        max_value=5,
+        value=3,
+        key="top_k_per_concept",
+    )
+    
+    if st.button("약점 기반 RAG 문제 생성하기"):
+        payload = {
+            "user_name": st.session_state.user_name,
+            "subject": weak_subject,
+            "weakness_count": weakness_count,
+            "question_count": weak_question_count,
+            "question_type": weak_question_type,
+            "difficulty": weak_difficulty,
+            "top_k_per_concept": top_k_per_concept,
+        }
+        
+        if weak_scope == "특정 문서":
+            if selected_weak_material_id is None:
+                st.warning("특정 문서를 선택하세요.")
+                st.stop()
+                
+            payload["material_id"] = selected_weak_material_id
+            
+        response = requests.post(
+            f"{API_BASE_URL}/weakness-rag-questions/generate",
+            json=payload,
+            timeout=180,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            st.success(f"{result['question_count']}개 약점 복습 문제가 생성되었습니다.")
+            
+            st.subheader("분석된 약점 개념")
+            for weakness in result["weakness_concepts"]:
+                st.write(f"- {weakness['concept']}: 오답 {weakness['wrong_count']}회")
+                
+            st.caption(f"사용된 RAG chunk 수: {result['used_chunk_count']}")
+            
+            st.subheader("생성된 약점 복습 문제")
+            
+            for question in result["questions"]:
+                source = question.get("source") or {}
+                
+                with st.expander(
+                    f"Q{question['id']} / {question['concept']} "
+                    f"/ Page {source.get('page_number', 'unknown')}"
+                ):
+                    st.write("문제")
+                    st.write(question["question"])
+                    
+                    st.write("정답")
+                    st.write(question["answer"])
+                    
+                    st.write("해설")
+                    st.write(question["explanation"])
+                    
+                    st.write("출처")
+                    st.write(
+                        f"material_id={source.get('material_id')}, "
+                        f"page={source.get('page_number')}, "
+                        f"chunk={source.get('chunk_index')}"
+                    )
+        else:
+            st.error("약점 기반 RAG 문제 생성 요청에 실패했습니다.")
+            st.write(response.text)
+
+with tab7:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -855,7 +1014,7 @@ with tab6:
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab7:
+with tab8:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
@@ -914,7 +1073,7 @@ with tab7:
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
             
-with tab8:
+with tab9:
     st.header("시험 D-Day 계획")
     
     exam_date = st.date_input(
@@ -967,7 +1126,7 @@ with tab8:
             st.error("복습 계획 요청에 실패했습니다.")
             st.write(response.text)
             
-with tab9:
+with tab10:
     st.header("문제 평가 요약")
     
     if st.button("내 평가 요약 불러오기"):
@@ -992,7 +1151,7 @@ with tab9:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
             
-with tab10:
+with tab11:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     
@@ -1074,7 +1233,7 @@ with tab10:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
         
-with tab11:
+with tab12:
     st.header("RAG 답변 평가 요약")
     
     rag_feedback_subject = st.selectbox(
@@ -1150,4 +1309,4 @@ with tab11:
                             st.write(item["comment"])
         else:
             st.error("최근 RAG 평가를 불러오지 못했습니다.")
-            st.write(response.text)
+            st.write(response.text)        
