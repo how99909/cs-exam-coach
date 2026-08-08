@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v2.9
-주요 업데이트: 문제 난이도 저장, 문제 개념 필드 통일, 시험지 생성 안정화
+현재 버전: v3.0
+주요 업데이트: 시험 응시 모드 추가
 
 ## 1. 프로젝트 개요
 
@@ -24,6 +24,14 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - RAG 문서 또는 사용자 약점을 기반으로 한 개인화 예상문제 생성
 - 선택한 문제를 Markdown 시험지로 구성하고 정답·해설 포함 여부 선택
 - Streamlit UI, FastAPI API, PostgreSQL, Chroma를 포함한 Docker Compose 실행 환경
+- 응시 모드
+- 생성 문제 기반 실전 풀이
+- 전체 답안 제출
+- AI 자동 채점
+- 점수 계산
+- 문항별 피드백 제공
+- 오답 자동 저장
+- 응시 기록 조회
 
 ## 4. 제한사항
 
@@ -56,6 +64,9 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - v2.9 시험지는 Markdown 형식으로 생성됩니다.
 - PDF 시험지 출력은 아직 지원하지 않습니다.
 - 객관식 보기 섞기, 자동 배점, 시험 시간 설정은 아직 지원하지 않습니다.
+- 응시 모드의 채점은 AI 기반 평가이므로 실제 교수자의 채점과 다를 수 있습니다.
+- 현재 제한 시간, 임시 저장, 객관식 보기 섞기는 지원하지 않습니다.
+- 오답 저장은 자동으로 수행되지만, concept 품질은 생성된 문제의 concept 값에 의존합니다.
 
 ## 5. 기술 스택
 
@@ -723,6 +734,64 @@ Form Data:
   "markdown": "# 운영체제 중간고사 대비 연습 시험지..."
 }
 ```
+
+### 21. 시험 응시 제출 API
+
+`POST /exam-attempts/submit`
+
+#### Request
+
+```json
+{
+  "user_name": "user_a",
+  "subject": "운영체제",
+  "title": "운영체제 연습 응시",
+  "answers": [
+    {
+      "question_id": 1,
+      "user_answer": "프로세스는 실행 중인 프로그램이고, 스레드는 프로세스 안의 실행 단위입니다."
+    }
+  ]
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "시험 응시 결과가 저장되었습니다.",
+  "attempt_id": 1,
+  "title": "운영체제 연습 응시",
+  "subject": "운영체제",
+  "total_questions": 5,
+  "correct_count": 4,
+  "score": 80,
+  "results": [
+    {
+      "question_id": 1,
+      "question": "프로세스와 스레드의 차이를 설명하시오.",
+      "user_answer": "프로세스는...",
+      "correct_answer": "프로세스는...",
+      "is_correct": true,
+      "feedback": "핵심 개념을 잘 설명했습니다.",
+      "concept": "프로세스와 스레드"
+    }
+  ]
+}
+```
+
+### 22. 응시 기록 조회 API
+
+`GET /exam-attempts/history`
+
+#### Query Parameters
+
+| 이름 | 설명 |
+|---|---|
+| user_name | 사용자 이름 |
+| subject | 과목명, 선택 |
+| limit | 조회할 최근 응시 기록 수 |
 
 ## 8. 실행 방법
 

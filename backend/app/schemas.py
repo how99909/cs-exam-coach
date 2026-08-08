@@ -133,3 +133,15 @@ class ExamPaperGenerateRequest(BaseModel):
     title: str = "CS Exam Coach Practice Test"
     include_answers: bool = False
     include_explanations: bool = False
+
+
+class ExamAttemptAnswerRequest(BaseModel):
+    question_id: int
+    user_answer: str
+    
+    
+class ExamAttemptSubmitRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str
+    title: str = "Practice Exam"
+    answers: list[ExamAttemptAnswerRequest]

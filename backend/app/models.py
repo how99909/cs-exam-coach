@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
 
 from app.database import Base
 
@@ -70,4 +70,29 @@ class RagAnswerFeedback(Base):
     source_relevance_score = Column(Integer, nullable=False)
     helpfulness_score = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ExamAttempt(Base):
+    __tablename__ = "exam_attempts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_name = Column(String(100), nullable=False, default="default_user")
+    subject = Column(String(100), nullable=False)
+    title = Column(String(255), nullable=False)
+    total_questions = Column(Integer, nullable=False)
+    correct_count = Column(Integer, nullable=False, default=0)
+    score = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    
+class ExamAttemptAnswer(Base):
+    __tablename__ = "exam_attempt_answers"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    attempt_id = Column(Integer, ForeignKey("exam_attempts.id"), nullable=False)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
+    user_answer = Column(Text, nullable=False)
+    is_correct = Column(Boolean, nullable=False, default=False)
+    feedback = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
