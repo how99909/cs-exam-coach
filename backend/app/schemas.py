@@ -145,3 +145,9 @@ class ExamAttemptSubmitRequest(BaseModel):
     subject: str
     title: str = "Practice Exam"
     answers: list[ExamAttemptAnswerRequest]
+
+
+class StudyReportRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str | None = None
+    limit: int = 20

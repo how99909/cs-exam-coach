@@ -25,7 +25,7 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16 = st.tabs(
     [
         "문제 생성", 
         "PDF 업로드", 
@@ -36,6 +36,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
         "시험지 생성",
         "응시 모드",
         "응시 분석",
+        "학습 리포트",
         "복습 추천", 
         "학습 기록", 
         "시험 계획", 
@@ -1396,6 +1397,79 @@ with tab9:
             st.write(response.text)
 
 with tab10:
+    st.header("개인 맞춤 학습 리포트")
+    st.caption("응시 기록과 오답 개념을 바탕으로 AI가 학습 전략을 제안합니다.")
+    
+    report_subject = st.selectbox(
+        "리포트 과목",
+        ["전체", "알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="report_subject",
+    )
+    
+    report_limit = st.slider(
+        "분석할 최근 응시 기록 수",
+        min_value=5,
+        max_value=50,
+        value=20,
+        key="report_limit",
+    )
+    
+    if st.button("개인 맞춤 학습 리포트 생성하기"):
+        payload = {
+            "user_name": st.session_state.user_name,
+            "limit": report_limit,
+        }
+        
+        if report_subject != "전체":
+            payload["subject"] = report_subject
+            
+        response = requests.post(
+            f"{API_BASE_URL}/study-reports/generate",
+            json=payload,
+            timeout=180,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            st.success("학습 리포트가 생성되었습니다.")
+            
+            summary = result["attempt_summary"]
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("응시 수", summary["attempt_count"])
+            with col2:
+                st.metric("평균 점수", summary["average_score"])
+            with col3:
+                st.metric("최근 점수", summary["latest_score"])
+            with col4:
+                st.metric("최고 점수", summary["best_score"])
+                
+            st.subheader("취약 개념")
+            weak_concepts = result.get("weak_concept", [])
+            
+            if not weak_concepts:
+                st.info("오답 기반 취약 개념이 없습니다.")
+            else:
+                for item in weak_concepts:
+                    st.write(f"- {item['concept']}: 오답 {item['wrong_count']}회")
+                    
+            st.subheader("AI 학습 리포트")
+            st.markdown(result["report"])
+            
+            st.download_button(
+                label="학습 리포트 Markdown 다운로드",
+                data=result["report"],
+                file_name="study_report.md",
+                mime="text/markdown",
+            )
+        else:
+            st.error("학습 리포트 생성에 실패했습니다.")
+            st.write(response.text)
+
+with tab11:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -1419,7 +1493,7 @@ with tab10:
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab11:
+with tab12:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
@@ -1478,7 +1552,7 @@ with tab11:
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
             
-with tab12:
+with tab13:
     st.header("시험 D-Day 계획")
     
     exam_date = st.date_input(
@@ -1531,7 +1605,7 @@ with tab12:
             st.error("복습 계획 요청에 실패했습니다.")
             st.write(response.text)
             
-with tab13:
+with tab14:
     st.header("문제 평가 요약")
     
     if st.button("내 평가 요약 불러오기"):
@@ -1556,7 +1630,7 @@ with tab13:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
           
-with tab14:
+with tab15:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     
@@ -1638,7 +1712,7 @@ with tab14:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
         
-with tab15:
+with tab16:
     st.header("RAG 답변 평가 요약")
     
     rag_feedback_subject = st.selectbox(
