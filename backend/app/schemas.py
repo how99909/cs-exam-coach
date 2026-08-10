@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import date
 
 
 class MaterialCreate(BaseModel):
@@ -151,3 +152,16 @@ class StudyReportRequest(BaseModel):
     user_name: str = "default_user"
     subject: str | None = None
     limit: int = 20
+    
+
+class StudyGoalCreateRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str
+    title: str
+    target_score: int
+    exam_date: date
+    
+    
+class StudyGoalStrategyRequest(BaseModel):
+    user_name: str = "default_user"
+    goal_id: int

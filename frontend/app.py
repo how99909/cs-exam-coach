@@ -25,7 +25,7 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17 = st.tabs(
     [
         "문제 생성", 
         "PDF 업로드", 
@@ -37,6 +37,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
         "응시 모드",
         "응시 분석",
         "학습 리포트",
+        "학습 목표",
         "복습 추천", 
         "학습 기록", 
         "시험 계획", 
@@ -1470,6 +1471,184 @@ with tab10:
             st.write(response.text)
 
 with tab11:
+    st.header("학습 목표 관리")
+    st.caption("목표 점수와 시험 날짜를 설정하고, 현재 상태와 비교해 학습 전략을 생성합니다.")
+    
+    goal_subject = st.selectbox(
+        "목표 과목",
+        ["알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="goal_subject",
+    )
+    
+    st.subheader("새 학습 목표 만들기")
+    
+    goal_title =  st.text_input(
+        "목표 제목",
+        value=f"{goal_subject} 시험 목표",
+        key="goal_title",
+    )
+    
+    target_score = st.slider(
+        "목표 점수",
+        min_value=0,
+        max_value=100,
+        value=85,
+        key="target_score",
+    )
+    
+    exam_date = st.date_input(
+        "시험 날짜",
+        key="goal_exam_date",
+    )
+    
+    if st.button("학습 목표 생성하기"):
+        response = requests.post(
+            f"{API_BASE_URL}/study-goals",
+            json={
+                "user_name": st.session_state.user_name,
+                "subject": goal_subject,
+                "title": goal_title,
+                "target_score": target_score,
+                "exam_date": str(exam_date),
+            },
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            st.success("학습 목표가 생성되었습니다.")
+            st.write(result["goal"])
+        else:
+            st.error("학습 목표 생성에 실패했습니다.")
+            st.write(response.text)
+            
+    st.divider()
+    st.subheader("내 학습 목표 조회")
+    
+    if "study_goals" not in st.session_state:
+        st.session_state.study_goals = []
+        
+    if st.button("학습 목표 목록 불러오기"):
+        response = requests.get(
+            f"{API_BASE_URL}/study-goals",
+            params={
+                "user_name": st.session_state.user_name,
+                "subject": goal_subject,
+            },
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            st.session_state.study_goals = result.get("goals", [])
+            
+            if not st.session_state.study_goals:
+                st.info("등록된 학습 목표가 없습니다.")
+            else:
+                st.success(f"{result['goal_count']}개 목표를 불러왔습니다.")
+        else:
+            st.error("학습 목표 목록을 불러오지 못했습니다.")
+            st.write(response.text)
+            
+    if st.session_state.study_goals:
+        goal_options = {
+            f"{goal['id']} / {goal['title']} / 목표 {goal['target_score']}점 / D-{goal['days_left']}": goal[
+                "id"
+            ]
+            for goal in st.session_state.study_goals
+        }
+        
+        selected_goal_label = st.selectbox(
+            "분석할 목표 선택",
+            list(goal_options.keys()),
+            key="selected_goal_label",
+        )
+        
+        selected_goal_id = goal_options[selected_goal_label]
+        
+        if st.button("목표 상태 분석하기"):
+            response = requests.get(
+                f"{API_BASE_URL}/study-goals/{selected_goal_id}/status",
+                params={
+                    "user_name": st.session_state.user_name,
+                },
+                timeout=30,
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                goal = result["goal"]
+                status = result["current_status"]
+                
+                st.subheader("목표 상태")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.metric("목표 점수", goal["target_score"])
+                with col2:
+                    st.metric("남은 날짜", goal["days_left"])
+                with col3:
+                    st.metric("현재 평균", status["current_average_score"])
+                with col4:
+                    st.metric("목표까지 차이", status["score_gap"])
+                    
+                st.subheader("취약 개념")
+                weak_concepts = result.get("weak_concepts", [])
+                
+                if not weak_concepts:
+                    st.info("취약 개념 데이터가 없습니다.")
+                else:
+                    for item in weak_concepts:
+                        st.write(f"- {item['concept']}: 오답 {item['wrong_count']}회")
+            else:
+                st.error("목표 상태 분석에 실패했습니다.")
+                st.write(response.text)
+                
+        if st.button("AI 목표 달성 전략 생성하기"):
+            response = requests.post(
+                f"{API_BASE_URL}/study-goals/strategy",
+                json={
+                    "user_name": st.session_state.user_name,
+                    "goal_id": selected_goal_id,
+                },
+                timeout=180,
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                st.success("목표 달성 전략이 생성되었습니다.")
+                
+                goal = result["goal"]
+                status = result["current_status"]
+                
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.metric("목표 점수", goal["target_score"])
+                with col2:
+                    st.metric("남은 날짜", goal["days_left"])
+                with col3:
+                    st.metric("현재 평균", status["current_average_score"])
+                with col4:
+                    st.metric("목표까지 차이", status["score_gap"])
+                    
+                st.subheader("AI 목표 달성 전략")
+                st.markdown(result["strategy"])
+                
+                st.download_button(
+                    label="목표 달성 전략 Markdown 다운로드",
+                    data=result["strategy"],
+                    file_name="goal_strategy.md",
+                    mime="text/markdown",
+                )
+            else:
+                st.error("목표 달성 전략 생성에 실패했습니다.")
+                st.write(response.text)
+
+with tab12:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -1493,7 +1672,7 @@ with tab11:
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab12:
+with tab13:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
@@ -1552,7 +1731,7 @@ with tab12:
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
             
-with tab13:
+with tab14:
     st.header("시험 D-Day 계획")
     
     exam_date = st.date_input(
@@ -1605,7 +1784,7 @@ with tab13:
             st.error("복습 계획 요청에 실패했습니다.")
             st.write(response.text)
             
-with tab14:
+with tab15:
     st.header("문제 평가 요약")
     
     if st.button("내 평가 요약 불러오기"):
@@ -1630,7 +1809,7 @@ with tab14:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
           
-with tab15:
+with tab16:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     
@@ -1712,7 +1891,7 @@ with tab15:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
         
-with tab16:
+with tab17:
     st.header("RAG 답변 평가 요약")
     
     rag_feedback_subject = st.selectbox(

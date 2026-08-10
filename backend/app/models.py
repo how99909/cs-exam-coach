@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Date
 
 from app.database import Base
 
@@ -95,4 +95,16 @@ class ExamAttemptAnswer(Base):
     user_answer = Column(Text, nullable=False)
     is_correct = Column(Boolean, nullable=False, default=False)
     feedback = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    
+class StudyGoal(Base):
+    __tablename__ = "study_goals"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_name = Column(String(100), nullable=False, default="default_user")
+    subject = Column(String(100), nullable=False)
+    title = Column(String(255), nullable=False)
+    target_score = Column(Integer, nullable=False)
+    exam_date = Column(Date, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
