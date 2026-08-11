@@ -165,3 +165,14 @@ class StudyGoalCreateRequest(BaseModel):
 class StudyGoalStrategyRequest(BaseModel):
     user_name: str = "default_user"
     goal_id: int
+    
+    
+class StudyChecklistGenerateRequest(BaseModel):
+    user_name: str = "default_user"
+    goal_id: int
+    item_count: int = 5
+    
+    
+class StudyChecklistUpdateRequest(BaseModel):
+    user_name: str = "default_user"
+    is_done: bool

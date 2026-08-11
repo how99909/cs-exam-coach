@@ -741,3 +741,80 @@ OPENAI_API_KEY가 설정되어 있지 않아 예시 전략을 반환합니다.
     )
     
     return response.choices[0].message.content
+
+
+def generate_study_checklist_items(
+    user_name: str,
+    goal: dict[str, Any],
+    current_status: dict[str, Any],
+    weak_concepts: list[dict[str, Any]],
+    item_count: int = 5,
+) -> list[dict[str, Any]]:
+    if client is None:
+        return [
+            {
+                "title": "약점 개념 복습하기",
+                "description": "오답이 많은 개념을 정리하고 관련 문제를 다시 풀어보세요.",
+                "priority": 1,
+            }
+        ]
+        
+    prompt = f"""
+너는 컴퓨터소프트웨어학 전공 시험 대비를 돕는 AI 학습 코치다.
+
+아래 학습 목표와 현재 상태를 바탕으로 사용자가 바로 실행할 수 있는 체크리스트 {item_count}개를 생성하라.
+
+학습 목표:
+{goal}
+
+현재 상태:
+{current_status}
+
+취약 개념:
+{weak_concepts}
+
+반드시 아래 JSON 배열 형식으로만 응답하라.
+마크다운 코드블록은 사용하지 마라.
+
+[
+  {{
+    "title": "할 일 제목",
+    "description": "구체적인 실행 설명",
+    "priority": 1
+  }}
+]
+
+규칙:
+- priority는 1이 가장 중요하고 숫자가 커질수록 낮은 우선순위다.
+- 할 일은 추상적이지 않게 작성하라.
+- 각 항목은 30~60분 안에 실행 가능한 단위로 작성하라.
+- 한국어로 작성하라.
+"""
+
+    response = client.chat.completions.create(
+        model=settings.OPENAI_CHAT_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": "너는 목표 기반 학습 체크리스트를 만드는 컴퓨터소프트웨어학 학습 코치다.",
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
+        temperature=0.3,
+    )
+    
+    content = response.choices[0].message.content
+    
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        return [
+            {
+                "title": "AI 체크리스트 파싱 실패",
+                "description": content,
+                "priority": 1,
+            }
+        ]

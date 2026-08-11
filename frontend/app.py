@@ -25,7 +25,7 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18 = st.tabs(
     [
         "문제 생성", 
         "PDF 업로드", 
@@ -38,6 +38,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
         "응시 분석",
         "학습 리포트",
         "학습 목표",
+        "학습 체크리스트",
         "복습 추천", 
         "학습 기록", 
         "시험 계획", 
@@ -1649,6 +1650,165 @@ with tab11:
                 st.write(response.text)
 
 with tab12:
+    st.header("학습 체크리스트")
+    st.caption("학습 목표를 바탕으로 실행 가능한 할 일을 생성하고 완료 상태를 관리합니다.")
+    
+    checklist_subject = st.selectbox(
+        "체크리스트 과목",
+        ["알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="checklist_subject",
+    )
+    
+    if "checklist_goals" not in st.session_state:
+        st.session_state.checklist_goals = []
+        
+    if st.button("체크리스트용 목표 목록 불러오기"):
+        response = requests.get(
+            f"{API_BASE_URL}/study-goals",
+            params={
+                "user_name": st.session_state.user_name,
+                "subject": checklist_subject,
+            },
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            st.session_state.checklist_goals = result.get("goals", [])
+            
+            if not st.session_state.checklist_goals:
+                st.info("등록된 학습 목표가 없습니다. 먼저 학습 목표를 생성하세요.")
+            else:
+                st.success(f"{result['goal_count']}개 목표를 불러왔습니다.")
+        else:
+            st.error("학습 목표 목록을 불러오지 못했습니다.")
+            st.write(response.text)
+            
+    selected_checklist_goal_id = None
+    
+    if st.session_state.checklist_goals:
+        goal_options = {
+            f"{goal['id']} / {goal['title']} / 목표 {goal['target_score']}점 / D-{goal['days_left']}": goal[
+                "id"
+            ]
+            for goal in st.session_state.checklist_goals
+        }
+        
+        selected_goal_label = st.selectbox(
+            "체크리스트를 만들 목표 선택",
+            list(goal_options.keys()),
+            key="checklist_goal_label",
+        )
+        
+        selected_checklist_goal_id = goal_options[selected_goal_label]
+        
+        item_count = st.slider(
+            "생성할 체크리스트 항목 수",
+            min_value=3,
+            max_value=10,
+            value=5,
+            key="checklist_item_count",
+        )
+        
+        if st.button("AI 체크리스트 생성하기"):
+            response = requests.post(
+                f"{API_BASE_URL}/study-checklists/generate",
+                json={
+                    "user_name": st.session_state.user_name,
+                    "goal_id": selected_checklist_goal_id,
+                    "item_count": item_count,
+                },
+                timeout=180,
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                st.success(f"{result['item_count']}개 체크리스트가 생성되었습니다.")
+            else:
+                st.error("체크리스트 생성에 실패했습니다.")
+                st.write(response.text)
+                
+    st.divider()
+    st.subheader("내 체크리스트")
+    
+    if st.button("체크리스트 불러오기"):
+        params = {
+            "user_name": st.session_state.user_name,
+            "subject": checklist_subject,
+        }
+        
+        if selected_checklist_goal_id is not None:
+            params["goal_id"] = selected_checklist_goal_id
+            
+        response = requests.get(
+            f"{API_BASE_URL}/study-checklists",
+            params=params,
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            st.session_state.checklist_items = result.get("items", [])
+            st.session_state.checklist_progress = {
+                "total_count": result["total_count"],
+                "done_count": result["done_count"],
+                "progress_rate": result["progress_rate"],
+            }
+        else:
+            st.error("체크리스트를 불러오지 못했습니다.")
+            st.write(response.text)
+            
+    if "checklist_item" not in st.session_state:
+        st.session_state.checklist_items = []
+        
+    if "checklist_progress" in st.session_state:
+        progress = st.session_state.checklist_progress
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("전체 항목", progress["total_count"])
+        with col2:
+            st.metric("완료 항목", progress["done_count"])
+        with col3:
+            st.metric("진행률", f"{progress['progress_rate']}%")
+            
+        st.progress(progress["progress_rate"] / 100)
+        
+    for item in st.session_state.checklist_items:
+        with st.expander(
+            f"{'✅' if item['is_done'] else '⬜'} "
+            f"P{item['priority']} / {item['title']}"
+        ):
+            st.write(item["description"])
+            st.caption(f"과목: {item['subject']} / goal_id={item['goal_id']}")
+            
+            new_done = st.checkbox(
+                "완료",
+                value=item["is_done"],
+                key=f"checklist_done_{item['id']}",
+            )
+            
+            if st.button(
+                f"상태 저장 item_id={item['id']}",
+                key=f"save_checklist_{item['id']}",
+            ): 
+                response = requests.patch(
+                    f"{API_BASE_URL}/study-checklists/{item['id']}",
+                    json={
+                        "user_name": st.session_state.use_name,
+                        "is_done": new_done,
+                    },
+                    timeout=30,
+                )
+                
+                if response.status_code == 200:
+                    st.success("체크리스트 상태가 저장되었습니다.")
+                else:
+                    st.error("체크리스트 상태 저장에 실패했습니다.")
+                    st.write(response.text)
+
+with tab13:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -1672,7 +1832,7 @@ with tab12:
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab13:
+with tab14:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
@@ -1731,7 +1891,7 @@ with tab13:
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
             
-with tab14:
+with tab15:
     st.header("시험 D-Day 계획")
     
     exam_date = st.date_input(
@@ -1784,7 +1944,7 @@ with tab14:
             st.error("복습 계획 요청에 실패했습니다.")
             st.write(response.text)
             
-with tab15:
+with tab16:
     st.header("문제 평가 요약")
     
     if st.button("내 평가 요약 불러오기"):
@@ -1809,7 +1969,7 @@ with tab15:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
           
-with tab16:
+with tab17:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     
@@ -1891,7 +2051,7 @@ with tab16:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
         
-with tab17:
+with tab18:
     st.header("RAG 답변 평가 요약")
     
     rag_feedback_subject = st.selectbox(

@@ -108,3 +108,18 @@ class StudyGoal(Base):
     target_score = Column(Integer, nullable=False)
     exam_date = Column(Date, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class StudyChecklistItem(Base):
+    __tablename__ = "study_checklist_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_name = Column(String(100), nullable=False, default="default_user")
+    goal_id = Column(Integer, ForeignKey("study_goals.id"), nullable=False)
+    subject = Column(String(100), nullable=False)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    priority = Column(Integer, nullable=False, default=1)
+    is_done = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)

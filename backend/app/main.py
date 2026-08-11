@@ -14,7 +14,8 @@ from app.routers import (
     weakness_rag_questions,
     exam_attempts,
     study_reports,
-    study_goals
+    study_goals,
+    study_checklists
 )
 
 # Base.metadata.create_all(bind=engine)
@@ -22,7 +23,7 @@ from app.routers import (
 app = FastAPI(
     title="CS Exam Coach API",
     description="컴소 전공 시험 대비 AI 문제 생성 및 오답 복습 API",
-    version="0.3.3",
+    version="0.3.4",
 )
 
 app.include_router(questions.router)
@@ -39,6 +40,7 @@ app.include_router(exam_papers.router)
 app.include_router(exam_attempts.router)
 app.include_router(study_reports.router)
 app.include_router(study_goals.router)
+app.include_router(study_checklists.router)
 
 @app.get("/")
 def root():
