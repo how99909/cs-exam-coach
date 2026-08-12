@@ -25,7 +25,7 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19 = st.tabs(
     [
         "문제 생성", 
         "PDF 업로드", 
@@ -39,6 +39,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
         "학습 리포트",
         "학습 목표",
         "학습 체크리스트",
+        "학습 세션",
         "복습 추천", 
         "학습 기록", 
         "시험 계획", 
@@ -1809,6 +1810,249 @@ with tab12:
                     st.write(response.text)
 
 with tab13:
+    st.header("학습 세션 기록")
+    st.caption("실제로 공부한 시간, 내용, 회고를 기록합니다.")
+    
+    session_subject = st.selectbox(
+        "학습 과목",
+        ["전체", "알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="session_subject",
+    )
+    
+    duration_minutes= st.number_input(
+        "공부 시간(분)",
+        min_value=1,
+        value=60,
+        key="session_duration_minutes",
+    )
+    
+    session_content = st.text_area(
+        "공부한 내용",
+        height=120,
+        placeholder="예: 프로세스와 스레드 차이 복습, RAG 문제 5개 풀이",
+        key="session_content",
+    )
+    
+    session_reflection = st.text_area(
+        "회고",
+        height=100,
+        placeholder="예: 스레드 동기화 개념이 아직 헷갈림",
+        key="session_reflection",
+    )
+    
+    focus_score = st.slider(
+        "집중도",
+        min_value=1,
+        max_value=5,
+        value=3,
+        key="session_focus_score",
+    )
+    
+    st.subheader("목표/체크리스트 연결 선택")
+    
+    linked_goal_id = None
+    linked_checklist_item_id = None
+    
+    if "session_goals"  not in st.session_state:
+        st.session_state.session_goals = []
+        
+    if st.button("세션 연결용 목표 목록 불러오기"):
+        response = requests.get(
+            f"{API_BASE_URL}/study-goals",
+            params={
+                "user_name": st.session_state.user_name,
+                "subject": session_subject,
+            },
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            st.session_state.session_goals = result.get("goals", [])
+            
+            if not st.session_state.session_goals:
+                st.info("연결할 학습 목표가 없습니다.")
+            else:
+                st.success(f"{result['goal_count']}개 목표를 불러왔습니다.")
+        else:
+            st.error("학습 목표 목록을 불러오지 못했습니다.")
+            st.write(response.text)
+            
+    if st.session_state.sessioon_goals:
+        goal_options = {
+            "연결 안 함": None,
+            **{
+                f"{goal['id']} / {goal['title']} / 목표 {goal['target_score']}점": goal["id"]
+                for goal in st.session_state.session_goals
+            },
+        }
+        
+        selected_goal_label = st.selectbox(
+            "연결할 목표",
+            list(goal_options.keys()),
+            key="session_goal_label",
+        )
+        
+        linked_goal_id = goal_options[selected_goal_label]
+        
+    if "session_checklist_items" not in st.session_state:
+        st.session_state.session_checklist_items = []
+        
+    if st.button("세션 연결용 체크리스트 불러오기"):
+        params = {
+            "user_name": st.session_state.user_name,
+            "subject": session_subject,
+        }
+        
+        if linked_goal_id is not None:
+            params["goal_id"] = linked_goal_id
+            
+        response = requests.get(
+            f"{API_BASE_URL}/study-checklists",
+            params=params,
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            st.session_state.session_checklist_items = result.get("items", [])
+            
+            if not st.session_state.session_checklist_items:
+                st.info("연결할 체크리스트가 없습니다.")
+            else:
+                st.success(f"{result['total_count']}개 체크리스트 항목을 불러왔습니다.")
+        else:
+            st.error("체크리스트를 불러오지 못했습니다.")
+            st.write(response.text)
+            
+    if st.session_state.session_checklist_items:
+        checklist_options = {
+            "연결 안 함": None,
+            **{
+                f"{item['id']} / {'완료' if item['is_done'] else '미완료'} / {item['title']}": item[
+                    "id"
+                ]
+                for item in st.session_state.session_checklist_items
+            },
+        }
+        
+        selected_checklist_label = st.selectbox(
+            "연결할 체크리스트",
+            list(checklist_options.keys()),
+            key="session_checklist_label",
+        )
+        
+        linked_checklist_item_id = checklist_options[selected_checklist_label]
+        
+    if st.button("학습 세션 저장하기"):
+        if not session_content.strip():
+            st.warning("공부한 내용을 입력하세요.")
+        elif session_subject == "전체":
+            st.warning("학습 세션 저장 시에는 구체적인 과목을 선택하세요.")
+        else:
+            payload = {
+                "user_name": st.session_state.user_name,
+                "subject": session_subject,
+                "goal_id": linked_goal_id,
+                "checklist_item_id": linked_checklist_item_id,
+                "duration_minutes": int(duration_minutes),
+                "content": session_content,
+                "reflection": session_reflection,
+                "focus_score": focus_score,
+            }
+            
+            response = requests.post(
+                f"{API_BASE_URL}/study-sessions",
+                json=payload,
+                timeout=30,
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                st.success("학습  세션이 저장되었습니다.")
+                st.write(result["session"])
+            else:
+                st.error("학습 세션 저장에 실패했습니다.")
+                st.write(response.text)
+                
+    st.divider()
+    st.subheader("학습 세션 요약")
+    
+    if st.button("학습 세션 요약 불러오기"):
+        params = {
+            "user_name": st.session_state.user_name,
+        }
+        
+        if session_subject != "전체":
+            params["subject"] = session_subject
+        
+        response = requests.get(
+            f"{API_BASE_URL}/study-sessions/summary",
+            params=params,
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("세션 수", result["session_count"])
+            with col2:
+                st.metric("총 공부 시간", f"{result['total_hours']}시간")
+            with col3:
+                st.metric("평균 집중도", result["avg_focus_score"])
+                
+            st.subheader("과목별 학습 시간")
+            if result["subject_summary"]:
+                st.dataframe(pd.DataFrame(result["subject_summary"]), use_container_width=True)
+            else:
+                st.info("학습 세션 데이터가 없습니다.")
+        else:
+            st.error("학습 세션 요약을 불러오지 못했습니다.")
+            st.write(response.text)
+            
+    st.divider()
+    st.subheader("최근 학습 세션")
+    
+    if st.button("최근 학습 세션 불러오기"):
+        response = requests.get(
+            f"{API_BASE_URL}/study-sessions",
+            params={
+                "user_name": st.session_state.user_name,
+                "subject": session_subject,
+                "limit": 20,
+            },
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            if not result["sessions"]:
+                st.info("최근 학습 세션이 없습니다.")
+            else:
+                for session in result["sessions"]:
+                    with st.expander(
+                        f"{session['subject']} / {session['duration_minutes']}분 / {session['created_at']}"
+                    ):
+                        st.write("공부한 내용")
+                        st.write(session["content"])
+                        
+                        if session["reflection"]:
+                            st.write("회고")
+                            st.write(session["reflection"])
+                            
+                        st.write(f"집중도: {session['focus_score']}")
+                        st.caption(
+                            f"goal_id={session['goal_id']} / checklist_item_id={session['checklist_item_id']}"
+                        )
+        else:
+            st.error("최근 학습 세션을 불러오지 못했습니다.")
+            st.write(response.text)
+
+with tab14:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -1832,7 +2076,7 @@ with tab13:
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab14:
+with tab15:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
@@ -1891,7 +2135,7 @@ with tab14:
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
             
-with tab15:
+with tab16:
     st.header("시험 D-Day 계획")
     
     exam_date = st.date_input(
@@ -1944,7 +2188,7 @@ with tab15:
             st.error("복습 계획 요청에 실패했습니다.")
             st.write(response.text)
             
-with tab16:
+with tab17:
     st.header("문제 평가 요약")
     
     if st.button("내 평가 요약 불러오기"):
@@ -1969,7 +2213,7 @@ with tab16:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
           
-with tab17:
+with tab18:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     
@@ -2051,7 +2295,7 @@ with tab17:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
         
-with tab18:
+with tab19:
     st.header("RAG 답변 평가 요약")
     
     rag_feedback_subject = st.selectbox(

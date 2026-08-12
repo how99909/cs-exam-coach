@@ -123,3 +123,18 @@ class StudyChecklistItem(Base):
     is_done = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
+    
+    
+class StudySession(Base):
+    __tablename__ = "study_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_name = Column(String(100), nullable=False, default="default_user")
+    subject = Column(String(100), nullable=False)
+    goal_id = Column(Integer, ForeignKey("study_goals.id"), nullable=True)
+    checklist_item_id = Column(Integer, ForeignKey("study_checklist_items.id"), nullable=True)
+    duration_minutes = Column(Integer, nullable=False)
+    content = Column(Text, nullable=False)
+    reflection = Column(Text, nullable=True)
+    focus_score = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

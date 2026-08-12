@@ -176,3 +176,14 @@ class StudyChecklistGenerateRequest(BaseModel):
 class StudyChecklistUpdateRequest(BaseModel):
     user_name: str = "default_user"
     is_done: bool
+    
+    
+class StudySessionCreateRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str
+    goal_id = int | None = None
+    checklist_item_id: int | None = None
+    duration_minutes: int
+    content: str
+    reflection: str | None = None
+    focus_score: int | None = None
