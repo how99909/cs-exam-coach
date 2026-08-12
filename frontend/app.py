@@ -25,7 +25,7 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20 = st.tabs(
     [
         "문제 생성", 
         "PDF 업로드", 
@@ -40,6 +40,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
         "학습 목표",
         "학습 체크리스트",
         "학습 세션",
+        "주간 리포트",
         "복습 추천", 
         "학습 기록", 
         "시험 계획", 
@@ -2053,6 +2054,92 @@ with tab13:
             st.write(response.text)
 
 with tab14:
+    st.header("주간 학습 리포트")
+    st.caption("최근 학습 세션, 응시 기록, 체크리스트를 종합해 주간리포트를 생성합니다.")
+    
+    weekly_subject = st.selectbox(
+        "리포트 과목",
+        ["전체", "알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="weakly_subject",
+    )
+    
+    weekly_days = st.slider(
+        "분석 기간",
+        min_value=1,
+        max_value=31,
+        value=7,
+        key="weekly_days",
+    )
+    
+    if st.button("주간 학습 리포트 생성하기"):
+        payload = {
+            "user_name": st.session_state.user_name,
+            "days": weekly_days,
+        }
+        
+        if weekly_subject != "전체":
+            payload["subject"] = weekly_subject
+            
+        response = requests.post(
+            f"{API_BASE_URL}/weekly-reports/generate",
+            json=payload,
+            timeout=180,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            st.success("주간 학습 리포트가 생성되었습니다.")
+            
+            session_summary = result["session_summary"]
+            attempt_summary = result["attempt_summary"]
+            checklist_summary = result["checklist_summary"]
+            
+            st.subheader("주간 요약")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("학습 세션", session_summary["session_count"])
+            with col2:
+                st.metric("총 공부 시간", f"{session_summary['total_hours']}시간")
+            with col3:
+                st.metric("응시 횟수", attempt_summary["attempt_count"])
+            with col4:
+                st.metric("체크리스트 진행률", f"{checklist_summary['progress_rate']}%")
+                
+            col5, col6, col7 = st.columns(3)
+            
+            with col5:
+                st.metric("평균 집중도", session_summary["avg_focus_score"])
+            with col6:
+                st.metric("평균 점수", attempt_summary["avg_score"])
+            with col7:
+                st.metric("최근 점수", attempt_summary["latest_score"])
+                
+            st.subheader("취약 개념")
+            weak_concepts = result.get("weak_concepts", [])
+            
+            if not weak_concepts:
+                st.info("이번 기간의 오답 기반 취약 개념이 없습니다.")
+            else:
+                for item in weak_concepts:
+                    st.write(f"- {item['concept']}: 오답 {item['wrong_count']}회")
+                    
+            st.subheader("AI 주간 학습 리포트")
+            st.markdown(result["report"])
+            
+            st.download_button(
+                label="주간 리포트 Markdown 다운로드",
+                data=result["report"],
+                file_name="weekly_study_report.md",
+                mime="text/markdown",
+            )
+        else:
+            st.error("주간 리포트 생성에 실패했습니다.")
+            st.write(response.text)
+
+with tab15:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -2076,7 +2163,7 @@ with tab14:
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab15:
+with tab16:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
@@ -2135,7 +2222,7 @@ with tab15:
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
             
-with tab16:
+with tab17:
     st.header("시험 D-Day 계획")
     
     exam_date = st.date_input(
@@ -2188,7 +2275,7 @@ with tab16:
             st.error("복습 계획 요청에 실패했습니다.")
             st.write(response.text)
             
-with tab17:
+with tab18:
     st.header("문제 평가 요약")
     
     if st.button("내 평가 요약 불러오기"):
@@ -2213,7 +2300,7 @@ with tab17:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
           
-with tab18:
+with tab19:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     
@@ -2295,7 +2382,7 @@ with tab18:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
         
-with tab19:
+with tab20:
     st.header("RAG 답변 평가 요약")
     
     rag_feedback_subject = st.selectbox(

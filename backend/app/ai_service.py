@@ -818,3 +818,109 @@ def generate_study_checklist_items(
                 "priority": 1,
             }
         ]
+        
+        
+def generate_weekly_study_report(
+    user_name: str, 
+    subject: str | None, 
+    period_summary: dict[str, Any],
+    session_summary: dict[str, Any],
+    attempt_summary: dict[str, Any],
+    weak_concepts: list[dict[str, Any]],
+    checklist_summary: dict[str, Any],
+) -> str:
+    if client is None:
+        return """
+# 주간 학습 요약 리포트
+
+OPENAI_API_KEY가 설정되어 있지 않아 예시 리포트를 반환합니다.
+
+## 1. 이번 주 학습량
+최근 학습 세션과 공부 시간을 확인하세요.
+
+## 2. 응시 결과
+최근 응시 점수와 오답 개념을 확인하세요.
+
+## 3. 다음 주 학습 우선순위
+오답이 많은 개념과 미완료 체크리스트를 우선 처리하세요.
+"""
+
+    subject_label = subject if subject else "전체 과목"
+    
+    prompt = f"""
+너는 컴퓨터소프트웨어학 전공 시험 대비를 돕는 AI 학습 코치다.
+
+아래 데이터를 바탕으로 주간 학습 요약 리포트를 작성하라.
+
+사용자: {user_name}
+분석 과목: {subject_label}
+
+분석 기간:
+{period_summary}
+
+학습 세션 요약:
+{session_summary}
+
+응시 기록 요약:
+{attempt_summary}
+
+취약 개념:
+{weak_concepts}
+
+체크리스트 요약:
+{checklist_summary}
+
+아래 구조로 작성하라.
+
+# 주간 학습 요약 리포트
+
+## 1. 이번 주 학습량 요약
+- 총 공부 시간
+- 학습 세션 수
+- 평균 집중도
+- 학습량이 충분했는지 판단
+
+## 2. 응시 결과 요약
+- 응시 횟수
+- 평균 점수
+- 최근 점수 흐름
+- 정답률에 대한 판단
+
+## 3. 주요 취약 개념
+- 오답이 많은 개념을 우선순위로 정리
+- 왜 다음 주에 복습해야 하는지 설명
+
+## 4. 체크리스트 진행 상태
+- 완료율을 기준으로 실행력을 판단
+- 미완료 항목이 많으면 원인을 짚어라
+
+## 5. 다음 주 학습 우선순위
+- 1순위, 2순위, 3순위로 구체적으로 제안
+
+## 6. 다음 주 실행 계획
+- 하루 단위가 아니라 실행 가능한 학습 블록 단위로 제안
+- RAG 문제 생성, 응시 모드, 오답 복습, 학습 세션 기록을 활용하도록 제안
+
+주의:
+- 데이터에 근거해서 작성하라.
+- 데이터가 부족하면 부족하다고 말하라.
+- 과장하지 마라.
+- 한국어로 작성하라.
+"""
+
+    response = client.chat.completions.create(
+        model=settings.OPENAI_CHAT_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": "너는 학습 데이터를 분석해 주간 학습 리포트를 작성하는 컴퓨터소프트웨어학 학습 코치다.",
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
+        temperature=0.35,
+    )
+    
+    return response.choices[0].message.content

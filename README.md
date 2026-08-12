@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v3.5
-주요 업데이트: 스터디 세션 트래킹 기능 추가
+현재 버전: v3.6
+주요 업데이트: 주간 스터디 리포트 생성 기능 추가
 
 ## 1. 프로젝트 개요
 
@@ -58,6 +58,12 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 공부 내용 및 회고 기록
 - 집중도 점수 기록
 - 과목별 총 학습 시간 조회
+- 주간 학습 리포트 생성
+- 최근 N일 학습 세션 요약
+- 최근 N일 응시 기록 요약
+- 체크리스트 진행률 요약
+- 취약 개념 기반 다음 주 학습 우선순위 추천
+- Markdown 리포트 다운로드
 
 ## 4. 제한사항
 
@@ -107,6 +113,9 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 학습 세션은 사용자가 직접 입력한 공부 시간과 내용을 기반으로 기록됩니다.
 - 현재 자동 타이머, 수정, 삭제 기능은 지원하지 않습니다.
 - 집중도 점수는 사용자의 주관적 평가입니다.
+- 주간 리포트는 저장된 학습 세션, 응시 기록, 체크리스트 데이터를 기반으로 생성됩니다.
+- 데이터가 부족하면 리포트 품질이 낮아질 수 있습니다.
+- 현재 리포트는 저장되지 않고 요청 시 생성됩니다.
 
 ## 5. 기술 스택
 
@@ -1063,6 +1072,57 @@ Form Data:
 |---|---|
 | user_name | 사용자 이름 |
 | subject | 과목명, 선택 |
+
+### 34. 주간 학습 리포트 생성 API
+
+`POST /weekly-reports/generate`
+
+#### Request
+
+```json
+{
+  "user_name": "user_a",
+  "subject": "운영체제",
+  "days": 7
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "주간 학습 리포트가 생성되었습니다.",
+  "period_summary": {
+    "days": 7,
+    "start_at": "2026-08-01T00:00:00",
+    "end_at": "2026-08-08T00:00:00"
+  },
+  "session_summary": {
+    "session_count": 3,
+    "total_minutes": 180,
+    "total_hours": 3.0,
+    "avg_focus_score": 4.0
+  },
+  "attempt_summary": {
+    "attempt_count": 2,
+    "avg_score": 75.0,
+    "latest_score": 80
+  },
+  "weak_concepts": [
+    {
+      "concept": "프로세스와 스레드",
+      "wrong_count": 2
+    }
+  ],
+  "checklist_summary": {
+    "total_count": 5,
+    "done_count": 3,
+    "progress_rate": 60.0
+  },
+  "report": "# 주간 학습 요약 리포트..."
+}
+```
 
 ## 8. 실행 방법
 

@@ -187,3 +187,9 @@ class StudySessionCreateRequest(BaseModel):
     content: str
     reflection: str | None = None
     focus_score: int | None = None
+    
+    
+class WeeklyStudyReportRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str | None = None
+    days: int = 7
