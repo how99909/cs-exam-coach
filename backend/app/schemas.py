@@ -181,7 +181,7 @@ class StudyChecklistUpdateRequest(BaseModel):
 class StudySessionCreateRequest(BaseModel):
     user_name: str = "default_user"
     subject: str
-    goal_id = int | None = None
+    goal_id: int | None = None
     checklist_item_id: int | None = None
     duration_minutes: int
     content: str
@@ -193,3 +193,8 @@ class WeeklyStudyReportRequest(BaseModel):
     user_name: str = "default_user"
     subject: str | None = None
     days: int = 7
+
+
+class GoalDashboardRequest(BaseModel):
+    user_name: str = "default_user"
+    goal_id: int

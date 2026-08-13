@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v3.6
-주요 업데이트: 주간 스터디 리포트 생성 기능 추가
+현재 버전: v3.7
+주요 업데이트: 목표 대시보드 기능 추가
 
 ## 1. 프로젝트 개요
 
@@ -64,6 +64,12 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 체크리스트 진행률 요약
 - 취약 개념 기반 다음 주 학습 우선순위 추천
 - Markdown 리포트 다운로드
+- 목표별 통합 대시보드
+- 목표별 체크리스트 진행률 조회
+- 목표별 학습 세션 요약
+- 목표 과목 응시 기록 요약
+- 목표 과목 취약 개념 분석
+- AI 목표 상태 코멘트 생성
 
 ## 4. 제한사항
 
@@ -116,6 +122,9 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 주간 리포트는 저장된 학습 세션, 응시 기록, 체크리스트 데이터를 기반으로 생성됩니다.
 - 데이터가 부족하면 리포트 품질이 낮아질 수 있습니다.
 - 현재 리포트는 저장되지 않고 요청 시 생성됩니다.
+- 목표별 대시보드는 목표에 연결된 학습 세션과 해당 과목 응시 기록을 기반으로 생성됩니다.
+- 응시 기록이 부족하면 목표 달성 상태 판단의 정확도가 낮아질 수 있습니다.
+- 현재 목표 달성 확률을 수치 모델로 예측하지는 않습니다.
 
 ## 5. 기술 스택
 
@@ -1121,6 +1130,62 @@ Form Data:
     "progress_rate": 60.0
   },
   "report": "# 주간 학습 요약 리포트..."
+}
+```
+
+### 35. 목표별 대시보드 API
+
+`POST /goal-dashboard`
+
+#### Request
+
+```json
+{
+  "user_name": "user_a",
+  "goal_id": 1
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "목표별 대시보드가 생성되었습니다.",
+  "goal": {
+    "id": 1,
+    "subject": "운영체제",
+    "title": "운영체제 중간고사 목표",
+    "target_score": 85,
+    "exam_date": "2026-10-20",
+    "days_left": 73
+  },
+  "checklist_summary": {
+    "total_count": 5,
+    "done_count": 3,
+    "pending_count": 2,
+    "progress_rate": 60.0
+  },
+  "session_summary": {
+    "session_count": 4,
+    "total_hours": 5.5,
+    "avg_focus_score": 4.0
+  },
+  "attempt_summary": {
+    "attempt_count": 3,
+    "avg_score": 76.67,
+    "latest_score": 80,
+    "best_score": 85,
+    "target_score": 85,
+    "score_gap": 8.33
+  },
+  "weak_concepts": [
+    {
+      "concept": "프로세스와 스레드",
+      "wrong_count": 2
+    }
+  ],
+  "comment": "# 목표 상태 코멘트..."
 }
 ```
 
