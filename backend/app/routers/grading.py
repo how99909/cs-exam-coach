@@ -16,7 +16,7 @@ def grade_answer(
         question_text=request.question_text,
         correct_answer=request.correct_answer,
         user_answer=request.user_answer,
-        concept_tag=request.concept_tag,
+        concept=request.concept,
     )
     
     wrong_answer = models.WrongAnswer(
@@ -24,7 +24,7 @@ def grade_answer(
         question_id=request.question_id,
         user_answer=request.user_answer,
         correct_answer=request.correct_answer,
-        concept_tag=result.get("concept_tag") or request.concept_tag,
+        concept=result.get("concept") or request.concept,
         feedback=result.get("feedback", ""),
         is_correct=result.get("is_correct", False),
     )

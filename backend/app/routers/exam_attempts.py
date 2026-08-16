@@ -85,7 +85,6 @@ def submit_exam_attempt(
                 question_id=question.id,
                 user_answer=answer_item.user_answer,
                 correct_answer=question.answer,
-                explanation=question.explanation,
                 concept=question.concept,
             )
             db.add(wrong_answer)

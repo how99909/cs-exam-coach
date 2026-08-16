@@ -25,7 +25,7 @@ user_name = st.text_input(
 
 st.session_state.user_name = user_name.strip() or "default_user"
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22 = st.tabs(
     [
         "문제 생성", 
         "PDF 업로드", 
@@ -39,6 +39,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
         "학습 리포트",
         "학습 목표",
         "목표 대시보드",
+        "스마트 복습 큐",
         "학습 체크리스트",
         "학습 세션",
         "주간 리포트",
@@ -137,7 +138,7 @@ with tab1:
                         "question_text": question["question_text"],
                         "correct_answer": question["answer"],
                         "user_answer": user_answer,
-                        "concept_tag": question.get("concept"),
+                        "concept": question.get("concept"),
                     },
                     timeout=60,
                 )
@@ -1817,6 +1818,89 @@ with tab12:
                 st.write(response.text)
 
 with tab13:
+    st.header("스마트 복습 큐")
+    st.caption("오답, 응시 기록, 체크리스트, 학습 세션을 종합해 오늘 복습할 항목을 추천합니다.")
+    
+    smart_subject = st.selectbox(
+        "복습 큐 과목",
+        ["전체", "알고리즘", "마이크로프로세서", "수치해석", "시스템프로그래밍", "기타"],
+        key="smart_review_subject",
+    )
+    
+    smart_limit = st.slider(
+        "추천 항목 수",
+        min_value=1,
+        max_value=10,
+        value=5,
+        key="smart_review_limit",
+    )
+    
+    if st.button("오늘의 스마트 복습 큐 생성하기"):
+        payload = {
+            "user_name": st.session_state.user_name,
+            "limit": smart_limit,
+        }
+        
+        if smart_subject != "전체":
+            payload["subject"] = smart_subject
+            
+        response = requests.post(
+            f"{API_BASE_URL}/smart-review/queue",
+            json=payload,
+            timeout=180,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            
+            st.success("스마트 복습 큐가 생성되었습니다.")
+            
+            session_summary = result["session_summary"]
+            attempt_summary = result["attempt_summary"]
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("최근 7일 학습 시간", f"{session_summary['total_hours']}시간")
+            with col2:
+                st.metric("최근 7일 세션 수", session_summary["session_count"])
+            with col3:
+                st.metric("최근 7일 응시 수", attempt_summary["attempt_count"])
+            with col4:
+                st.metric("최근 점수", attempt_summary["latest_score"])
+                
+            st.subheader("취약 개념")
+            weak_concepts = result.get("weak_concepts", [])
+            
+            if not weak_concepts:
+                st.info("취약 개념 데이터가 없습니다.")
+            else:
+                for item in weak_concepts[:5]:
+                    st.write(f"- {item['concept']}: 오답 {item['wrong_count']}회")
+                    
+            st.subheader("미완료 체크리스트")
+            pending_checklists = result.get("pending_checklists", [])
+            
+            if not pending_checklists:
+                st.info("미완료 체크리스트가 없습니다.")
+            else:
+                for item in pending_checklists[:5]:
+                    st.write(f"- P{item['priority']} / {item['title']}")
+                    
+            st.subheader("AI 오늘의 복습 큐")
+            st.markdown(result["queue"])
+            
+            st.download_button(
+                label="스마트 복습 큐 Markdown 다운로드",
+                data=result["queue"],
+                file_name="smart_review_queue.md",
+                mime="text/markdown",
+            )
+        else:
+            st.error("스마트 복습 큐 생성에 실패했습니다.")
+            st.write(response.text)
+
+with tab14:
     st.header("학습 체크리스트")
     st.caption("학습 목표를 바탕으로 실행 가능한 할 일을 생성하고 완료 상태를 관리합니다.")
     
@@ -1975,7 +2059,7 @@ with tab13:
                     st.error("체크리스트 상태 저장에 실패했습니다.")
                     st.write(response.text)
 
-with tab14:
+with tab15:
     st.header("학습 세션 기록")
     st.caption("실제로 공부한 시간, 내용, 회고를 기록합니다.")
     
@@ -2218,7 +2302,7 @@ with tab14:
             st.error("최근 학습 세션을 불러오지 못했습니다.")
             st.write(response.text)
 
-with tab15:
+with tab16:
     st.header("주간 학습 리포트")
     st.caption("최근 학습 세션, 응시 기록, 체크리스트를 종합해 주간리포트를 생성합니다.")
     
@@ -2304,7 +2388,7 @@ with tab15:
             st.error("주간 리포트 생성에 실패했습니다.")
             st.write(response.text)
 
-with tab16:
+with tab17:
     st.header("복습 추천")
 
     if st.button("오답 복습 추천 받기"):
@@ -2322,13 +2406,13 @@ with tab16:
             else:
                 for item in recommendations:
                     st.write(
-                        f"- **{item['concept_tag']}**: "
+                        f"- **{item['concept']}**: "
                         f"{item['wrong_count']}회 오답 → {item['recommendation']}"
                     )
         else:
             st.error("복습 추천 문제를 가져오는데 실패했습니다.")
 
-with tab17:
+with tab18:
     st.header("학습 기록")
     
     if st.button("최근 생성 문제 불러오기"):
@@ -2373,7 +2457,7 @@ with tab17:
                 st.info("최근 오답 기록이 없습니다.")
             else:
                 for wrong_answer in wrong_answers:
-                    with st.expander(f"{wrong_answer['concept_tag']} - 오답 기록"):
+                    with st.expander(f"{wrong_answer['concept']} - 오답 기록"):
                         st.write("**내 답안**")
                         st.write(wrong_answer["user_answer"])
                         
@@ -2387,7 +2471,7 @@ with tab17:
         else:
             st.error("최근 오답 기록을 가져오는데 실패했습니다.")
             
-with tab18:
+with tab19:
     st.header("시험 D-Day 계획")
     
     exam_date = st.date_input(
@@ -2422,7 +2506,7 @@ with tab18:
                     
                     for concept in result["weak_concepts"]:
                         st.write(
-                            f"- **{concept['concept_tag']}**: "
+                            f"- **{concept['concept']}**: "
                             f"{concept['wrong_count']}회 오답"
                         )
                         
@@ -2440,7 +2524,7 @@ with tab18:
             st.error("복습 계획 요청에 실패했습니다.")
             st.write(response.text)
             
-with tab19:
+with tab20:
     st.header("문제 평가 요약")
     
     if st.button("내 평가 요약 불러오기"):
@@ -2465,7 +2549,7 @@ with tab19:
             st.error("문제 평가 요약을 가져오는데 실패했습니다.")
             st.write(response.text)
           
-with tab20:
+with tab21:
     st.header("관리자용 문제 품질 대시보드")
     st.caption("전체 사용자 평가를 기반으로 AI 생성 문제의 품질을 확인합니다.")
     
@@ -2547,7 +2631,7 @@ with tab20:
         st.error("관리자 대시보드를 불러오지 못했습니다.")
         st.write(response.text)
         
-with tab21:
+with tab22:
     st.header("RAG 답변 평가 요약")
     
     rag_feedback_subject = st.selectbox(

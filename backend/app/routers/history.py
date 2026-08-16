@@ -62,7 +62,7 @@ def get_recent_wrong_answers(
             "question_id": wrong_answer.question_id,
             "user_answer": wrong_answer.user_answer,
             "correct_answer": wrong_answer.correct_answer,
-            "concept_tag": wrong_answer.concept_tag,
+            "concept": wrong_answer.concept,
             "feedback": wrong_answer.feedback,
             "is_correct": wrong_answer.is_correct,
             "created_at": wrong_answer.created_at,

@@ -2,8 +2,8 @@
 
 컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
 
-현재 버전: v3.7
-주요 업데이트: 목표 대시보드 기능 추가
+현재 버전: v3.8
+주요 업데이트: 스마트 리뷰 큐 기능 추가
 
 ## 1. 프로젝트 개요
 
@@ -70,6 +70,12 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 목표 과목 응시 기록 요약
 - 목표 과목 취약 개념 분석
 - AI 목표 상태 코멘트 생성
+- 스마트 복습 큐 생성
+- 오답 concept 기반 복습 우선순위 추천
+- 최근 응시 기록 기반 복습 추천
+- 미완료 체크리스트 기반 실행 항목 추천
+- 최근 학습 세션 기반 학습량 반영
+- 오늘 실행할 복습 큐 Markdown 다운로드
 
 ## 4. 제한사항
 
@@ -125,6 +131,9 @@ CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 
 - 목표별 대시보드는 목표에 연결된 학습 세션과 해당 과목 응시 기록을 기반으로 생성됩니다.
 - 응시 기록이 부족하면 목표 달성 상태 판단의 정확도가 낮아질 수 있습니다.
 - 현재 목표 달성 확률을 수치 모델로 예측하지는 않습니다.
+- 스마트 복습 큐는 저장되지 않고 요청 시 생성됩니다.
+- 추천 품질은 오답 기록, 응시 기록, 체크리스트, 학습 세션 데이터의 양과 품질에 영향을 받습니다.
+- 현재 복습 큐 완료 처리 기능은 지원하지 않습니다.
 
 ## 5. 기술 스택
 
@@ -176,7 +185,7 @@ FastAPI Backend
 
 아래는 대표 API 사용 예시입니다. 전체 엔드포인트와 최신 요청 스키마는 실행 후 [Swagger UI](http://localhost:8000/docs)에서 확인할 수 있습니다.
 
-문제(`Question`)의 개념 필드는 `concept`입니다. 채점 결과와 오답 기록(`WrongAnswer`)은 기존 호환성을 위해 `concept_tag`를 사용합니다. 문제 난이도는 `easy`, `medium`, `hard`, `exam_like` 중 하나를 사용합니다.
+문제(`Question`), 채점 결과, 오답 기록(`WrongAnswer`)의 개념 필드는 모두 `concept`입니다. 문제 난이도는 `easy`, `medium`, `hard`, `exam_like` 중 하나를 사용합니다.
 
 ### 1. 문제 생성 API
 
@@ -228,7 +237,7 @@ FastAPI Backend
   "question_text": "프로세스와 스레드의 차이를 설명하시오.",
   "correct_answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
   "user_answer": "프로세스와 스레드는 같은 개념이다.",
-  "concept_tag": "프로세스와 스레드"
+  "concept": "프로세스와 스레드"
 }
 ```
 
@@ -238,7 +247,7 @@ FastAPI Backend
 {
   "is_correct": false,
   "feedback": "프로세스와 스레드를 같은 개념으로 설명한 점이 틀렸습니다. 스레드는 프로세스 내부에서 실행되며 자원을 공유합니다.",
-  "concept_tag": "프로세스와 스레드"
+  "concept": "프로세스와 스레드"
 }
 ```
 
@@ -257,7 +266,7 @@ FastAPI Backend
 ```json
 [
   {
-    "concept_tag": "프로세스와 스레드",
+    "concept": "프로세스와 스레드",
     "wrong_count": 3,
     "recommendation": "프로세스와 스레드 개념을 우선 복습하세요."
   }
@@ -311,7 +320,7 @@ FastAPI Backend
     "question_id": 12,
     "user_answer": "프로세스와 스레드는 같은 개념이다.",
     "correct_answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
-    "concept_tag": "프로세스와 스레드",
+    "concept": "프로세스와 스레드",
     "feedback": "스레드는 프로세스 내부에서 실행되며 같은 프로세스의 자원을 공유합니다.",
     "is_correct": false,
     "created_at": "2026-07-30T17:48:31.654321"
@@ -375,7 +384,7 @@ Form Data:
   "days_left": 14,
   "weak_concepts": [
     {
-      "concept_tag": "프로세스와 스레드",
+      "concept": "프로세스와 스레드",
       "wrong_count": 3
     }
   ],
@@ -1186,6 +1195,56 @@ Form Data:
     }
   ],
   "comment": "# 목표 상태 코멘트..."
+}
+```
+
+### 36. 스마트 복습 큐 생성 API
+
+`POST /smart-review/queue`
+
+#### Request
+
+```json
+{
+  "user_name": "user_a",
+  "subject": "운영체제",
+  "limit": 5
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "스마트 복습 큐가 생성되었습니다.",
+  "weak_concepts": [
+    {
+      "concept": "프로세스와 스레드",
+      "wrong_count": 3
+    }
+  ],
+  "pending_checklists": [
+    {
+      "id": 1,
+      "subject": "운영체제",
+      "title": "프로세스와 스레드 복습",
+      "priority": 1
+    }
+  ],
+  "session_summary": {
+    "period_days": 7,
+    "session_count": 3,
+    "total_hours": 4.5,
+    "avg_focus_score": 4.0
+  },
+  "attempt_summary": {
+    "period_days": 7,
+    "attempt_count": 2,
+    "avg_score": 75.0,
+    "latest_score": 80
+  },
+  "queue": "# 오늘의 스마트 복습 큐..."
 }
 ```
 

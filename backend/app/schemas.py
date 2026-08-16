@@ -32,17 +32,17 @@ class GradeRequest(BaseModel):
     question_text: str
     correct_answer: str
     user_answer: str
-    concept_tag: str | None = None
+    concept: str | None = None
     
     
 class GradeResponse(BaseModel):
     is_correct: bool
     feedback: str
-    concept_tag: str | None = None
+    concept: str | None = None
     
     
 class ReviewItem(BaseModel):
-    concept_tag: str
+    concept: str
     wrong_count: int
 
 
@@ -198,3 +198,9 @@ class WeeklyStudyReportRequest(BaseModel):
 class GoalDashboardRequest(BaseModel):
     user_name: str = "default_user"
     goal_id: int
+
+
+class SmartReviewQueueRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str | None = None
+    limit: int = 5

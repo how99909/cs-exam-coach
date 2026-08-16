@@ -16,12 +16,12 @@ def get_review_recommendations(
 ):
     results = (
         db.query(
-            models.WrongAnswer.concept_tag,
+            models.WrongAnswer.concept,
             func.count(models.WrongAnswer.id).label("wrong_count")
         )
         .filter(models.WrongAnswer.user_name == user_name)
         .filter(models.WrongAnswer.is_correct == False)
-        .group_by(models.WrongAnswer.concept_tag)
+        .group_by(models.WrongAnswer.concept)
         .order_by(func.count(models.WrongAnswer.id).desc())
         .all()
     )
@@ -29,11 +29,11 @@ def get_review_recommendations(
     return [
         {
             "user_name": user_name,
-            "concept_tag": concept_tag or "미분류",
+            "concept": concept or "미분류",
             "wrong_count": wrong_count,
-            "recommendation": f"{concept_tag or '미분류'} 개념을 우선 복습하세요."
+            "recommendation": f"{concept or '미분류'} 개념을 우선 복습하세요."
         }
-        for concept_tag, wrong_count in results
+        for concept, wrong_count in results
     ]
     
 @router.get("/study-plan")
@@ -67,22 +67,22 @@ def get_study_plan(
         
     results = (
         db.query(
-            models.WrongAnswer.concept_tag,
+            models.WrongAnswer.concept,
             func.count(models.WrongAnswer.id).label("wrong_count")
         )
         .filter(models.WrongAnswer.user_name == user_name)
         .filter(models.WrongAnswer.is_correct == False)
-        .group_by(models.WrongAnswer.concept_tag)
+        .group_by(models.WrongAnswer.concept)
         .order_by(func.count(models.WrongAnswer.id).desc())
         .all()
     )
     
     weak_concepts = [
         {
-            "concept_tag": concept_tag or "미분류",
+            "concept": concept or "미분류",
             "wrong_count": wrong_count,
         }
-        for concept_tag, wrong_count in results
+        for concept, wrong_count in results
     ]
     
     if not weak_concepts:
@@ -102,7 +102,7 @@ def get_study_plan(
             {
                 "day": "D-Day",
                 "task": "새로운 개념보다 기존 오답 개념과 핵심 요약을 빠르게 복습하세요.",
-                "concepts": [item["concept_tag"] for item in weak_concepts[:5]],
+                "concepts": [item["concept"] for item in weak_concepts[:5]],
             }
         )
         
@@ -111,14 +111,14 @@ def get_study_plan(
             {
                 "day": f"D-{days_left}",
                 "task": "오답 빈도가 높은 개념을 우선 복습하고, 틀린 문제를 다시 풀어보세요.",
-                "concepts": [item["concept_tag"] for item in weak_concepts[:5]],
+                "concepts": [item["concept"] for item in weak_concepts[:5]],
             }
         )
         plan.append(
             {
                 "day": "D-1",
                 "task": "새 문제보다 핵심 개념과 오답 노트를 중심으로 정리하세요.",
-                "concepts": [item["concept_tag"] for item in weak_concepts[:3]],
+                "concepts": [item["concept"] for item in weak_concepts[:3]],
             }
         )
         
@@ -129,21 +129,21 @@ def get_study_plan(
             {
                 "day": f"D-{days_left} ~ D-{midpoint + 1}",
                 "task": "오답 빈도가 높은 약점 개념을 집중 복습하세요.",
-                "concepts": [item["concept_tag"] for item in weak_concepts[:3]],
+                "concepts": [item["concept"] for item in weak_concepts[:3]],
             }
         )
         plan.append(
             {
                 "day": f"D-{midpoint} ~ D-2",
                 "task": "중간 우선순위 개념을 복습하고 관련 문제를 다시 풀어보세요.",
-                "concepts": [item["concept_tag"] for item in weak_concepts[3:6]],
+                "concepts": [item["concept"] for item in weak_concepts[3:6]],
             }
         )
         plan.append(
             {
                 "day": "D-1",
                 "task": "전체 오답 개념을 빠르게 훑고, 가장 많이 틀린 개념을 마지막으로 점검하세요.",
-                "concepts": [item["concept_tag"] for item in weak_concepts[:5]],
+                "concepts": [item["concept"] for item in weak_concepts[:5]],
             }
         )
         
@@ -152,28 +152,28 @@ def get_study_plan(
             {
                 "day": f"D-{days_left} ~ D-8",
                 "task": "오답 빈도가 높은 개념부터 차근차근 복습하고, 관련 개념을 다시 정리하세요.",
-                "concepts": [item["concept_tag"] for item in weak_concepts[:3]],
+                "concepts": [item["concept"] for item in weak_concepts[:3]],
             }
         )
         plan.append(
             {
                 "day": "D-7 ~ D-4",
                 "task": "중간 우선순위 개념을 복습하고 예상문제를 추가로 생성해 풀어보세요.",
-                "concepts": [item["concept_tag"] for item in weak_concepts[3:6]],
+                "concepts": [item["concept"] for item in weak_concepts[3:6]],
             }
         )
         plan.append(
             {
                 "day": f"D-3 ~ D-2",
                 "task": "오답 문제를 다시 풀고 채점 피드백을 확인하세요..",
-                "concepts": [item["concept_tag"] for item in weak_concepts[:5]],
+                "concepts": [item["concept"] for item in weak_concepts[:5]],
             }
         )
         plan.append(
             {
                 "day": "D-1",
                 "task": "새로운 문제보다 핵심 요약, 오답 개념, 자주 틀린 개념을 최종 점검하세요.",
-                "concepts": [item["concept_tag"] for item in weak_concepts[:5]],
+                "concepts": [item["concept"] for item in weak_concepts[:5]],
             }
         )
         

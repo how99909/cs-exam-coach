@@ -36,7 +36,7 @@ class WrongAnswer(Base):
     question_id = Column(Integer, nullable=False)
     user_answer = Column(Text, nullable=False)
     correct_answer = Column(Text, nullable=False)
-    concept_tag = Column(String(100), nullable=True)
+    concept = Column(String(100), nullable=True)
     feedback = Column(Text, nullable=True)
     is_correct = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)

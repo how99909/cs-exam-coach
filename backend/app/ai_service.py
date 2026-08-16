@@ -173,12 +173,12 @@ question_type: 문제 유형
         ]
         
         
-def grade_answer(question_text: str, correct_answer: str, user_answer: str, concept_tag: str | None):
+def grade_answer(question_text: str, correct_answer: str, user_answer: str, concept: str | None):
     if client is None:
         return {
             "is_correct": False,
             "feedback": "더미 채점 결과입니다. OPEN_API_KEY를 설정하면 실제 채점 결과를 받을 수 있습니다.",
-            "concept_tag": concept_tag,
+            "concept": concept,
         }
         
     prompt = f"""
@@ -200,7 +200,7 @@ def grade_answer(question_text: str, correct_answer: str, user_answer: str, conc
 {{
   "is_correct": true 또는 false,
   "feedback": "구체적인 피드백",
-  "concept_tag": "{concept_tag or ''}"
+  "concept": "{concept or ''}"
 }}
 """
 
@@ -221,7 +221,7 @@ def grade_answer(question_text: str, correct_answer: str, user_answer: str, conc
         return {
             "is_correct": False,
             "feedback": text,
-            "concept_tag": concept_tag,
+            "concept": concept,
         }
         
         
@@ -994,6 +994,98 @@ OPENAI_API_KEY가 설정되어 있지 않아 예시 코멘트를 반환합니다
             {
                 "role": "system",
                 "content": "너는 목표별 학습 상태를 진단하는 컴퓨터소프트웨어학 학습 코치다.",
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
+        temperature=0.35,
+    )
+    
+    return response.choices[0].message.content
+
+
+def generate_smart_review_queue(
+    user_name: str,
+    subject: str | None,
+    weak_concepts: list[dict[str, Any]],
+    recent_wrong_answers: list[dict[str, Any]],
+    pending_checklists: list[dict[str, Any]],
+    session_summary: dict[str, Any],
+    attempt_summary: dict[str, Any],
+    limit: int = 5,
+) -> str:
+    if client is None:
+        return """
+# 오늘의 스마트 복습 큐
+
+OPENAI_API_KEY가 설정되어 있지 않아 예시 복습 큐를 반환합니다.
+
+1. 오답이 많은 개념 1개를 복습하세요.
+2. 관련 RAG 문제를 3개 생성해 풀어보세요.
+3. 미완료 체크리스트 1개를 완료하세요.
+4. 최근 틀린 문제를 다시 풀어보세요.
+5. 학습 세션을 기록하세요.
+"""
+
+    subject_label = subject if subject else "전체 과목"
+    
+    prompt = f"""
+너는 컴퓨터소프트웨어학 전공 시험 대비를 돕는 AI 학습 코치다.
+
+아래 학습 데이터를 바탕으로 사용자가 오늘 바로 실행할 수 있는 스마트 복습 큐 {limit}개를 생성하라.
+
+사용자: {user_name}
+과목: {subject_label}
+
+취약 개념:
+{weak_concepts}
+
+최근 오답:
+{recent_wrong_answers}
+
+미완료 체크리스트:
+{pending_checklists}
+
+학습 세션 요약:
+{session_summary}
+
+응시 요약:
+{attempt_summary}
+
+아래 구조로 작성하라.
+
+# 오늘의 스마트 복습 큐
+
+## 우선순위 1
+- 할 일:
+- 이유:
+- 실행 방법:
+- 예상 소요 시간:
+
+## 우선순위 2
+- 할 일:
+- 이유:
+- 실행 방법:
+- 예상 소요 시간:
+
+규칙:
+- 총 {limit}개 이하로 작성하라.
+- 오답이 많은 개념을 우선 배치하라.
+- 미완료 체크리스트가 있으면 최소 1개 반영하라.
+- RAG 문제 생성, 응시 모드, 오답 복습, 학습 세션 기록 기능을 활용하도록 제안하라.
+- 추상적인 조언 대신 바로 실행 가능한 행동으로 작성하라.
+- 데이터가 부족하면 데이터가 부족하다고 말하라.
+- 한국어로 작성하라.
+"""
+
+    response = client.chat.completions.create(
+        model=settings.OPENAI_CHAT_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": "너는 사용자의 학습 데이터를 바탕으로 오늘의 복습 우선순위를 정하는 컴퓨터소프트웨어학 학습 코치다.",
             },
             {
                 "role": "user",
