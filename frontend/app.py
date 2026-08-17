@@ -27,10 +27,10 @@ st.session_state.user_name = user_name.strip() or "default_user"
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22 = st.tabs(
     [
-        "문제 생성", 
-        "PDF 업로드", 
-        "RAG 질의응답", 
-        "RAG 문서 관리", 
+        "문제 생성",
+        "PDF 업로드",
+        "RAG 질의응답",
+        "RAG 문서 관리",
         "RAG 문제 생성",
         "약점 RAG 문제",
         "시험지 생성",
@@ -43,10 +43,10 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13
         "학습 체크리스트",
         "학습 세션",
         "주간 리포트",
-        "복습 추천", 
-        "학습 기록", 
-        "시험 계획", 
-        "문제 평가", 
+        "복습 추천",
+        "학습 기록",
+        "시험 계획",
+        "문제 평가",
         "관리자 대시보드",
         "RAG 평가",
     ]
@@ -1845,7 +1845,7 @@ with tab13:
             payload["subject"] = smart_subject
             
         response = requests.post(
-            f"{API_BASE_URL}/smart-review/queue",
+            f"{API_BASE_URL}/smart-review/queue/save",
             json=payload,
             timeout=180,
         )
@@ -1899,6 +1899,100 @@ with tab13:
         else:
             st.error("스마트 복습 큐 생성에 실패했습니다.")
             st.write(response.text)
+
+    include_done = st.checkbox(
+        "완료 항목 포함",
+        value=True,
+        key="smart_review_include_done",
+    )
+    
+    if st.button("저장된 스마트 복습 큐 불러오기"):
+        params = {
+            "user_name": st.session_state.user_name,
+            "include_done": include_done,
+            "limit": 30,
+        }
+        
+        if smart_subject != "전체":
+            params["subject"] = smart_subject
+            
+        response = requests.get(
+            f"{API_BASE_URL}/smart-review/queue/items",
+            params=params,
+            timeout=30,
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            st.session_state.smart_review_items = result.get("items", [])
+            st.session_state.smart_review_progress = {
+                "total_count": result["total_count"],
+                "done_count": result["done_count"],
+                "progress_rate": result["progress_rate"],
+            }
+        else:
+            st.error("저장된 스마트 복습 큐를 불러오지 못했습니다.")
+            st.write(response.text)
+            
+    if "smart_review_progress" in st.session_state:
+        progress = st.session_state.smart_review_progress
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("큐 항목 수", progress["total_count"])
+        with col2:
+            st.metric("완료 항목", progress["done_count"])
+        with col3:
+            st.metric("완료율", f"{progress['progress_rate']}%")
+            
+        st.progress(progress["progress_rate"] / 100)
+        
+    if "smart_review_items" not in st.session_state:
+        st.session_state.smart_review_items = []
+        
+    for item in st.session_state.smart_review_items:
+        status_icon = "✅" if item["is_done"] else "⬜"
+        
+        with st.expander(
+            f"{status_icon} P{item['priority']} / {item['title']}"
+        ):
+            st.write("추천 이유")
+            st.write(item['reason'])
+            
+            st.write("실행 방법")
+            st.write(item["action"])
+            
+            st.caption(
+                f"source_type={item['source_type']} / "
+                f"estimated={item['estimated_minutes']}분 / "
+                f"subject={item['subject']}"
+            )
+            
+            new_done = st.checkbox(
+                "완료",
+                value=item["is_done"],
+                key=f"smart_review_done_{item['id']}",
+            )
+            
+            if st.button(
+                f"복습 큐 상태 저장 item_id={item['id']}",
+                key=f"save_smart_review_{item['id']}",
+            ):
+                response = requests.patch(
+                    f"{API_BASE_URL}/smart-review/queue/items/{item['id']}",
+                    json={
+                        "user_name": st.session_state.user_name,
+                        "is_done": new_done,
+                    },
+                    timeout=30,
+                )
+                
+                if response.status_code == 200:
+                    st.success("복습 큐 상태가 저장되었습니다.")
+                else:
+                    st.error("복습 규 상태 저장에 실패했습니다.")
+                    st.write(response.text)
 
 with tab14:
     st.header("학습 체크리스트")

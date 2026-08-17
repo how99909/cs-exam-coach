@@ -204,3 +204,14 @@ class SmartReviewQueueRequest(BaseModel):
     user_name: str = "default_user"
     subject: str | None = None
     limit: int = 5
+
+
+class SmartReviewQueueSaveRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str | None = None
+    limit: int = 5
+    
+    
+class SmartReviewQueueUpdateRequest(BaseModel):
+    user_name: str = "default_user"
+    is_done: bool

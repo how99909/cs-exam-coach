@@ -138,3 +138,20 @@ class StudySession(Base):
     reflection = Column(Text, nullable=True)
     focus_score = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SmartReviewQueueItem(Base):
+    __tablename__ = "smart_review_queue_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_name = Column(String(100), nullable=False, default="default_user")
+    subject = Column(String(100), nullable=True)
+    title = Column(String(255), nullable=False)
+    reason = Column(Text, nullable=True)
+    action = Column(Text, nullable=True)
+    estimated_minutes = Column(Integer, nullable=True)
+    priority = Column(Integer, nullable=False, default=1)
+    source_type = Column(String(100), nullable=True)
+    is_done = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)

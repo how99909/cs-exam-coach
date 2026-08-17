@@ -1006,7 +1006,7 @@ OPENAI_API_KEY가 설정되어 있지 않아 예시 코멘트를 반환합니다
     return response.choices[0].message.content
 
 
-def generate_smart_review_queue(
+def generate_smart_review_queue_items(
     user_name: str,
     subject: str | None,
     weak_concepts: list[dict[str, Any]],
@@ -1092,7 +1092,21 @@ OPENAI_API_KEY가 설정되어 있지 않아 예시 복습 큐를 반환합니�
                 "content": prompt,
             },
         ],
-        temperature=0.35,
+        temperature=0.3,
     )
     
-    return response.choices[0].message.content
+    content = response.choices[0].message.content
+    
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        return [
+            {
+                "title": "AI 복습 큐 파싱 실패",
+                "reason": "AI 응답이 JSON 형식이 아니었습니다.",
+                "action": content,
+                "estimated_minutes": 30,
+                "priority": 1,
+                "source_type": "format_error",
+            }
+        ]
