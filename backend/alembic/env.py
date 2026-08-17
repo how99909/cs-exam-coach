@@ -30,7 +30,10 @@ if config.config_file_name is not None:
     
 config.set_main_option(
     "sqlalchemy.url",
-    os.getenv("DATABASE_URL", "postgresql://postgres:how060507!@db:5432/cs_exam_coach")
+    os.getenv(
+        "DATABASE_URL",
+        "postgresql://postgres:postgres@localhost:5432/cs_exam_coach",
+    )
 )
 
 # add your model's MetaData object here

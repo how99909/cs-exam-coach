@@ -4,7 +4,7 @@ services:
     container_name: cs_exam_coach_db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: how060507!
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: cs_exam_coach
     ports:
       - "5432:5432"
@@ -23,6 +23,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/cs_exam_coach
       CHROMA_HOST: chroma
       CHROMA_PORT: 8000
     ports:
@@ -44,7 +45,7 @@ services:
       - backend
 
   chroma:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:1.5.9
     container_name: cs_exam_coach_chroma
     ports:
       - "8001:8000"

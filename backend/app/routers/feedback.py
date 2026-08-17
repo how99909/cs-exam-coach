@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -201,7 +201,7 @@ def get_low_exam_relevance_questions(
     
 @router.get("/recent-comments")
 def get_recent_feedback_comments(
-    limit: int = 10,
+    limit: int = Query(default=10, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
     comments = (

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -234,7 +234,7 @@ def list_smart_review_queue_items(
     user_name: str,
     subject: str | None = None,
     include_done: bool = True,
-    limit: int = 30,
+    limit: int = Query(default=30, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     query = db.query(models.SmartReviewQueueItem).filter(

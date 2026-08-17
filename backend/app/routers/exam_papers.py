@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app import models, schemas
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/exam-papers", tags=["exam-papers"])
 def list_questions_for_exam_paper(
     user_name: str,
     subject: str,
-    limit: int = 50,
+    limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     questions = (

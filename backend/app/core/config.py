@@ -1,14 +1,16 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(BACKEND_DIR / ".env")
 
 
 class Settings:
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "postgresql://postgres:how060507!@db:5432/cs_exam_coach",
+        "postgresql://postgres:postgres@localhost:5432/cs_exam_coach",
     )
     OPENAI_API_KEY: str | None = os.getenv("OPENAI_API_KEY")
     

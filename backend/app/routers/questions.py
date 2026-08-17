@@ -11,16 +11,6 @@ def generate_questions(
     request: schemas.QuestionGenerateRequest,
     db: Session = Depends(get_db),
 ):
-    material = models.StudyMaterial(
-        user_name=request.user_name,
-        subject=request.subject,
-        content=request.content,
-    )
-    
-    db.add(material)
-    db.commit()
-    db.refresh(material)
-    
     generated_questions = ai_service.generate_questions(
         subject=request.subject,
         content=request.content,
@@ -29,24 +19,39 @@ def generate_questions(
         difficulty=request.difficulty,
     )
     
-    saved_questions = []
-    
-    for item in generated_questions:
-        question = models.Question(
-            material_id=material.id,
-            question_text=item.get("question_text", ""),
-            answer=item.get("answer", ""),
-            explanation=item.get("explanation", ""),
-            concept=item.get("concept", item.get("concept_tag", "")),
-            question_type=item.get("question_type", request.question_type),
-            difficulty=request.difficulty,
+    try:
+        material = models.StudyMaterial(
+            user_name=request.user_name,
+            subject=request.subject,
+            content=request.content,
         )
-        
-        db.add(question)
+        db.add(material)
+        db.flush()
+
+        questions = []
+        for item in generated_questions:
+            question = models.Question(
+                material_id=material.id,
+                question_text=item.get("question_text", ""),
+                answer=item.get("answer", ""),
+                explanation=item.get("explanation", ""),
+                concept=item.get("concept", item.get("concept_tag", "")),
+                question_type=item.get("question_type", request.question_type),
+                difficulty=request.difficulty,
+            )
+            db.add(question)
+            questions.append(question)
+
         db.commit()
-        db.refresh(question)
-        
-        saved_questions.append(
+        db.refresh(material)
+        for question in questions:
+            db.refresh(question)
+    except Exception:
+        db.rollback()
+        raise
+
+    saved_questions = [
+        (
             {
                 "question_id": question.id,
                 "question_text": question.question_text,
@@ -57,7 +62,9 @@ def generate_questions(
                 "difficulty": question.difficulty,
             }
         )
-        
+        for question in questions
+    ]
+
     return {
         "user_name": request.user_name,
         "material_id": material.id,

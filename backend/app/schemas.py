@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import date
 
 
@@ -12,7 +12,7 @@ class QuestionGenerateRequest(BaseModel):
     subject: str
     content: str
     question_type: str = "short_answer"
-    count: int = 5
+    count: int = Field(default=5, ge=1, le=20)
     difficulty: str = "medium"
     
     
@@ -49,10 +49,10 @@ class ReviewItem(BaseModel):
 class QuestionFeedbackCreate(BaseModel):
     user_name: str = "default_user"
     question_id: int
-    quality_score: int
-    explanation_score: int
-    exam_relevance_score: int
-    difficulty_match_score: int
+    quality_score: int = Field(ge=1, le=5)
+    explanation_score: int = Field(ge=1, le=5)
+    exam_relevance_score: int = Field(ge=1, le=5)
+    difficulty_match_score: int = Field(ge=1, le=5)
     comment: str | None = None
     
 
@@ -68,7 +68,7 @@ class QuestionFeedbackResponse(BaseModel):
     
     
 class RagPage(BaseModel):
-    page: int
+    page: int = Field(ge=1)
     text: str
     
     
@@ -84,7 +84,7 @@ class RagAskRequest(BaseModel):
     user_name: str = "default_user"
     subject: str
     question: str
-    top_k: int = 5
+    top_k: int = Field(default=5, ge=1, le=50)
     material_id: int | None = None
     
 class RagDeleteRequest(BaseModel):
@@ -99,10 +99,10 @@ class RagAnswerFeedbackCreate(BaseModel):
     material_id: int | None = None
     question: str
     answer: str
-    accuracy_score: int
-    grounding_score: int
-    source_relevance_score: int
-    helpfulness_score: int
+    accuracy_score: int = Field(ge=1, le=5)
+    grounding_score: int = Field(ge=1, le=5)
+    source_relevance_score: int = Field(ge=1, le=5)
+    helpfulness_score: int = Field(ge=1, le=5)
     comment: str | None = None
     
     
@@ -112,25 +112,25 @@ class RagQuestionGenerateRequest(BaseModel):
     material_id: int | None = None
     question_type: str = "short_answer"
     difficulty: str = "medium"
-    count: int = 5
-    top_k: int = 8
+    count: int = Field(default=5, ge=1, le=20)
+    top_k: int = Field(default=8, ge=1, le=50)
     
     
 class WeaknessRagQuestionRequest(BaseModel):
     user_name: str = "default_user"
     subject: str
     material_id: int | None = None
-    weakness_count: int = 3
-    question_count: int = 5
+    weakness_count: int = Field(default=3, ge=1, le=20)
+    question_count: int = Field(default=5, ge=1, le=20)
     question_type: str = "short_answer"
     difficulty: str = "exam_like"
-    top_k_per_concept: int = 3
+    top_k_per_concept: int = Field(default=3, ge=1, le=20)
 
 
 class ExamPaperGenerateRequest(BaseModel):
     user_name: str = "default_user"
     subject: str
-    question_ids: list[int]
+    question_ids: list[int] = Field(min_length=1, max_length=100)
     title: str = "CS Exam Coach Practice Test"
     include_answers: bool = False
     include_explanations: bool = False
@@ -145,20 +145,20 @@ class ExamAttemptSubmitRequest(BaseModel):
     user_name: str = "default_user"
     subject: str
     title: str = "Practice Exam"
-    answers: list[ExamAttemptAnswerRequest]
+    answers: list[ExamAttemptAnswerRequest] = Field(min_length=1, max_length=100)
 
 
 class StudyReportRequest(BaseModel):
     user_name: str = "default_user"
     subject: str | None = None
-    limit: int = 20
+    limit: int = Field(default=20, ge=1, le=100)
     
 
 class StudyGoalCreateRequest(BaseModel):
     user_name: str = "default_user"
     subject: str
     title: str
-    target_score: int
+    target_score: int = Field(ge=0, le=100)
     exam_date: date
     
     
@@ -170,7 +170,7 @@ class StudyGoalStrategyRequest(BaseModel):
 class StudyChecklistGenerateRequest(BaseModel):
     user_name: str = "default_user"
     goal_id: int
-    item_count: int = 5
+    item_count: int = Field(default=5, ge=1, le=20)
     
     
 class StudyChecklistUpdateRequest(BaseModel):
@@ -183,16 +183,16 @@ class StudySessionCreateRequest(BaseModel):
     subject: str
     goal_id: int | None = None
     checklist_item_id: int | None = None
-    duration_minutes: int
+    duration_minutes: int = Field(ge=1, le=1440)
     content: str
     reflection: str | None = None
-    focus_score: int | None = None
+    focus_score: int | None = Field(default=None, ge=1, le=5)
     
     
 class WeeklyStudyReportRequest(BaseModel):
     user_name: str = "default_user"
     subject: str | None = None
-    days: int = 7
+    days: int = Field(default=7, ge=1, le=365)
 
 
 class GoalDashboardRequest(BaseModel):
@@ -203,13 +203,13 @@ class GoalDashboardRequest(BaseModel):
 class SmartReviewQueueRequest(BaseModel):
     user_name: str = "default_user"
     subject: str | None = None
-    limit: int = 5
+    limit: int = Field(default=5, ge=1, le=50)
 
 
 class SmartReviewQueueSaveRequest(BaseModel):
     user_name: str = "default_user"
     subject: str | None = None
-    limit: int = 5
+    limit: int = Field(default=5, ge=1, le=50)
     
     
 class SmartReviewQueueUpdateRequest(BaseModel):

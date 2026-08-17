@@ -1,11 +1,14 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Date, Index
 
 from app.database import Base
 
 class StudyMaterial(Base):
     __tablename__ = "study_materials"
+    __table_args__ = (
+        Index("ix_study_materials_user_subject_created", "user_name", "subject", "created_at"),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
     user_name = Column(String(100), nullable=False, default="default_user")
@@ -30,6 +33,9 @@ class Question(Base):
     
 class WrongAnswer(Base):
     __tablename__ = "wrong_answers"
+    __table_args__ = (
+        Index("ix_wrong_answers_user_created", "user_name", "created_at"),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
     user_name = Column(String(100), nullable=False, default="default_user")
@@ -75,6 +81,9 @@ class RagAnswerFeedback(Base):
 
 class ExamAttempt(Base):
     __tablename__ = "exam_attempts"
+    __table_args__ = (
+        Index("ix_exam_attempts_user_subject_created", "user_name", "subject", "created_at"),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
     user_name = Column(String(100), nullable=False, default="default_user")
@@ -100,6 +109,9 @@ class ExamAttemptAnswer(Base):
     
 class StudyGoal(Base):
     __tablename__ = "study_goals"
+    __table_args__ = (
+        Index("ix_study_goals_user_exam_date", "user_name", "exam_date"),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
     user_name = Column(String(100), nullable=False, default="default_user")
@@ -112,6 +124,9 @@ class StudyGoal(Base):
 
 class StudyChecklistItem(Base):
     __tablename__ = "study_checklist_items"
+    __table_args__ = (
+        Index("ix_checklist_user_goal_done", "user_name", "goal_id", "is_done"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_name = Column(String(100), nullable=False, default="default_user")
@@ -127,6 +142,9 @@ class StudyChecklistItem(Base):
     
 class StudySession(Base):
     __tablename__ = "study_sessions"
+    __table_args__ = (
+        Index("ix_study_sessions_user_subject_created", "user_name", "subject", "created_at"),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
     user_name = Column(String(100), nullable=False, default="default_user")
@@ -142,6 +160,9 @@ class StudySession(Base):
 
 class SmartReviewQueueItem(Base):
     __tablename__ = "smart_review_queue_items"
+    __table_args__ = (
+        Index("ix_review_queue_user_done_priority", "user_name", "is_done", "priority"),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
     user_name = Column(String(100), nullable=False, default="default_user")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app import crud_rag_feedback, schemas
@@ -71,7 +71,7 @@ def get_rag_feedback_summary(
 def get_recent_rag_feedback(
     user_name: str | None = None,
     subject: str | None = None,
-    limit: int = 20,
+    limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     feedback_items = crud_rag_feedback.get_recent_rag_feedback(

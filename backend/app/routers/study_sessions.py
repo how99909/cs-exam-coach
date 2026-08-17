@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -93,7 +93,7 @@ def list_study_sessions(
     user_name: str,
     subject: str | None = None,
     goal_id: int | None = None,
-    limit: int = 30,
+    limit: int = Query(default=30, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     query = db.query(models.StudySession).filter(

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -20,6 +20,12 @@ def submit_exam_attempt(
         )
         
     question_ids = [answer.question_id for answer in request.answers]
+
+    if len(question_ids) != len(set(question_ids)):
+        raise HTTPException(
+            status_code=400,
+            detail="같은 문제의 답안을 중복 제출할 수 없습니다.",
+        )
     
     questions = (
         db.query(models.Question)
@@ -38,21 +44,9 @@ def submit_exam_attempt(
             detail="일부 문제를 찾지 못했습니다.",
         )
         
-    attempt = models.ExamAttempt(
-        user_name=request.user_name,
-        subject=request.subject,
-        title=request.title,
-        total_questions=len(request.answers),
-        correct_count=0,
-        score=0,
-    )
-    
-    db.add(attempt)
-    db.commit()
-    db.refresh(attempt)
-    
     results = []
     correct_count = 0
+    graded_answers = []
     
     for answer_item in request.answers:
         question = question_map[answer_item.question_id]
@@ -69,25 +63,7 @@ def submit_exam_attempt(
         if is_correct:
             correct_count += 1
             
-        attempt_answer = models.ExamAttemptAnswer(
-            attempt_id=attempt.id,
-            question_id=question.id,
-            user_answer=answer_item.user_answer,
-            is_correct=is_correct,
-            feedback=grading_result["feedback"],
-        )
-        
-        db.add(attempt_answer)
-        
-        if not is_correct:
-            wrong_answer = models.WrongAnswer(
-                user_name=request.user_name,
-                question_id=question.id,
-                user_answer=answer_item.user_answer,
-                correct_answer=question.answer,
-                concept=question.concept,
-            )
-            db.add(wrong_answer)
+        graded_answers.append((answer_item, question, grading_result))
             
         results.append(
             {
@@ -103,11 +79,47 @@ def submit_exam_attempt(
         
     score = round((correct_count / len(request.answers)) * 100)
     
-    attempt.correct_count = correct_count
-    attempt.score = score
-    
-    db.commit()
-    db.refresh(attempt)
+    try:
+        attempt = models.ExamAttempt(
+            user_name=request.user_name,
+            subject=request.subject,
+            title=request.title,
+            total_questions=len(request.answers),
+            correct_count=correct_count,
+            score=score,
+        )
+        db.add(attempt)
+        db.flush()
+
+        for answer_item, question, grading_result in graded_answers:
+            is_correct = grading_result["is_correct"]
+            db.add(
+                models.ExamAttemptAnswer(
+                    attempt_id=attempt.id,
+                    question_id=question.id,
+                    user_answer=answer_item.user_answer,
+                    is_correct=is_correct,
+                    feedback=grading_result["feedback"],
+                )
+            )
+
+            if not is_correct:
+                db.add(
+                    models.WrongAnswer(
+                        user_name=request.user_name,
+                        question_id=question.id,
+                        user_answer=answer_item.user_answer,
+                        correct_answer=question.answer,
+                        concept=question.concept,
+                        feedback=grading_result["feedback"],
+                    )
+                )
+
+        db.commit()
+        db.refresh(attempt)
+    except Exception:
+        db.rollback()
+        raise
     
     return {
         "success": True,
@@ -126,7 +138,7 @@ def submit_exam_attempt(
 def get_exam_attempt_history(
     user_name: str,
     subject: str | None = None,
-    limit: int = 20,
+    limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     query = db.query(models.ExamAttempt).filter(
@@ -160,7 +172,7 @@ def get_exam_attempt_history(
     }
     
     
-@router.get("/{attempt_id}")
+@router.get("/{attempt_id:int}")
 def get_exam_attempt_detail(
     attempt_id: int,
     user_name: str,
@@ -216,7 +228,7 @@ def get_exam_attempt_detail(
 def get_exam_attempt_analytics(
     user_name: str,
     subject: str | None = None,
-    limit: int = 20,
+    limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
     attempt_query = db.query(models.ExamAttempt).filter(

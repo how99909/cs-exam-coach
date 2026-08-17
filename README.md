@@ -1,1318 +1,124 @@
 # CS Exam Coach
 
-컴소 전공 시험 대비를 위한 AI 문제 생성 및 오답 복습 서비스입니다.
+컴퓨터공학 전공 시험 대비를 위한 AI 문제 생성·채점·복습 관리 서비스입니다.
 
-현재 버전: v3.9
-주요 업데이트: 스마트 리뷰 큐 저장 기능 추가
+- 제품 버전: **v3.9**
+- API 버전: **0.3.9**
+- 최근 주요 변경: 스마트 복습 큐 저장 및 완료 상태 관리
 
-## 1. 프로젝트 개요
+## 1. 프로젝트 소개
 
-CS Exam Coach는 사용자가 전공 공부 내용을 입력하면 AI가 시험 대비 문제를 생성하고, 사용자의 답안을 채점한 뒤, 오답 개념을 저장하여 복습 우선순위를 추천합니다.
+CS Exam Coach는 사용자가 직접 입력하거나 PDF에서 추출한 학습 자료를 바탕으로 예상문제를 생성하고, 답안을 채점한 뒤 오답과 학습 기록을 분석해 다음 학습 행동을 추천합니다.
 
-## 2. 개발 동기
+단순한 자료 요약보다 컴퓨터공학 시험에서 자주 다루는 개념 비교, 코드 추적, SQL 작성, 서술형 문제의 생성과 반복 학습에 초점을 맞춥니다.
 
-기존 AI 학습 도구는 강의자료 요약에는 강하지만, 컴퓨터공학 전공 시험에서 자주 나오는 코드 추적형, SQL 작성형, 개념 비교형 문제 생성에는 특화되어 있지 않습니다. 이 프로젝트는 컴소 전공생의 시험 대비 과정에 맞춘 AI 학습 코치를 목표로 합니다.
+## 2. 주요 기능
 
-## 3. 주요 기능
+### 문제 생성과 채점
 
-- 직접 입력하거나 PDF에서 추출한 학습 자료로 AI 예상문제 생성
-- 객관식, 단답형, 서술형, 코드 추적형 등 다양한 문제 유형과 난이도 지원
-- AI 답안 채점, 피드백 저장, 오답 개념별 복습 우선순위 추천
-- 사용자 이름별 문제·오답 이력과 시험 D-Day 기반 복습 계획 관리
-- 문제·해설·시험 적합도·난이도 및 RAG 답변 품질 평가
-- PDF 페이지 단위 Chroma 인덱싱과 문서 근거 기반 RAG 질의응답
-- RAG 문서 또는 사용자 약점을 기반으로 한 개인화 예상문제 생성
-- 선택한 문제를 Markdown 시험지로 구성하고 정답·해설 포함 여부 선택
-- Streamlit UI, FastAPI API, PostgreSQL, Chroma를 포함한 Docker Compose 실행 환경
-- 응시 모드
-- 생성 문제 기반 실전 풀이
-- 전체 답안 제출
-- AI 자동 채점
-- 점수 계산
-- 문항별 피드백 제공
-- 오답 자동 저장
-- 응시 기록 조회
-- 응시 결과 분석 대시보드
-- 최근 응시 기록 기반 평균 점수 계산
-- 최근 점수 변화 시각화
-- concept별 취약 개념 랭킹
-- 과목별 응시 요약
-- 개인 맞춤 학습 리포트 생성
-- 응시 기록 기반 학습 상태 요약
-- 취약 개념 기반 복습 우선순위 추천
-- 다음 응시 전략 추천
-- Markdown 리포트 다운로드
-- 학습 목표 관리
-- 목표 점수 설정
-- 시험 날짜 설정
-- 현재 평균 점수와 목표 점수 비교
-- 남은 날짜 계산
-- 취약 개념 기반 AI 목표 달성 전략 생성
-- 학습 체크리스트 생성
-- 학습 목표 기반 AI 실행 항목 생성
-- 체크리스트 완료 상태 관리
-- 체크리스트 진행률 계산
-- 학습 세션 기록
-- 과목별 공부 시간 기록
-- 목표/체크리스트와 학습 세션 연결
-- 공부 내용 및 회고 기록
-- 집중도 점수 기록
-- 과목별 총 학습 시간 조회
-- 주간 학습 리포트 생성
-- 최근 N일 학습 세션 요약
-- 최근 N일 응시 기록 요약
-- 체크리스트 진행률 요약
-- 취약 개념 기반 다음 주 학습 우선순위 추천
-- Markdown 리포트 다운로드
-- 목표별 통합 대시보드
-- 목표별 체크리스트 진행률 조회
-- 목표별 학습 세션 요약
-- 목표 과목 응시 기록 요약
-- 목표 과목 취약 개념 분석
-- AI 목표 상태 코멘트 생성
-- 스마트 복습 큐 생성
-- 오답 concept 기반 복습 우선순위 추천
-- 최근 응시 기록 기반 복습 추천
-- 미완료 체크리스트 기반 실행 항목 추천
-- 최근 학습 세션 기반 학습량 반영
-- 오늘 실행할 복습 큐 Markdown 다운로드
-- 스마트 복습 큐 저장
-- 저장된 복습 큐 조회
-- 복습 큐 항목별 완료 처리
-- 복습 큐 완료율 계산
+- 직접 입력한 학습 내용 또는 PDF 추출 텍스트로 AI 예상문제 생성
+- 객관식, 단답형, 서술형, 코드 추적형 등 문제 유형과 난이도 선택
+- 개별 답안 및 모의시험 전체 답안 AI 채점
+- 문항별 피드백, 점수, 오답 및 관련 개념 저장
+- 최근 문제와 오답 기록 조회
 
-## 4. 제한사항
+### 시험과 학습 분석
 
-- 현재 PDF 업로드 기능은 텍스트 기반 PDF를 대상으로 합니다.
-- 스캔본 PDF는 OCR을 지원하지 않아 텍스트 추출이 제한될 수 있습니다.
-- 긴 PDF는 AI API 입력 길이 제한으로 인해 일부 내용만 사용하는 방식으로 개선할 예정입니다.
-- 현재 사용자 구분은 로그인 방식이 아니라 사용자 이름 입력 방식으로 동작합니다.
-- 동일한 사용자 이름을 입력하면 같은 학습 기록을 조회할 수 있습니다.
-- 실제 서비스에서는 회원가입/로그인 및 인증 기능이 필요합니다.
-- 시험 복습 계획은 오답 빈도를 기준으로 한 규칙 기반 추천이며, 실제 학습 효과를 보장하지 않습니다.
-- 페이지 범위는 사용자가 직접 입력해야 합니다.
-- 현재 관리자 대시보드는 별도 인증 없이 접근 가능합니다.
-- 실제 서비스에서는 관리자 인증 및 권한 분리가 필요합니다.
-- 현재 RAG는 텍스트 추출 가능한 PDF만 지원합니다.
-- 현재 source는 PDF 페이지 번호와 chunk 번호를 기준으로 표시됩니다.
-- PDF 텍스트 추출 품질에 따라 page metadata 정확도가 달라질 수 있습니다.
-- RAG 문서 삭제는 Chroma Vector DB의 chunk만 삭제합니다.
-- PostgreSQL의 StudyMaterial 기록은 유지됩니다.
-- 현재 문서 삭제는 사용자 이름, 과목, material_id 기준으로 동작합니다.
-- 특정 문서 검색은 material_id 기준으로 동작합니다.
-- 현재 여러 material_id를 동시에 선택하는 기능은 지원하지 않습니다.
-- RAG 답변 평가는 사용자의 주관적 평가이며, 실제 정답성을 보장하지 않습니다.
-- 현재 평가 데이터는 프롬프트 자동 개선에 직접 사용되지는 않습니다.
-- RAG 기반 문제 생성은 Chroma에 인덱싱된 chunk를 기반으로 동작합니다.
-- source는 문제 생성에 참고한 chunk 기준이며, 문제 전체의 완전한 근거를 보장하지는 않습니다.
-- 동일한 chunk에서 유사 문제가 반복 생성될 수 있습니다.
-- 약점 기반 RAG 문제 생성은 기존 오답 기록이 있어야 동작합니다.
-- 오답 concept 품질이 낮으면 약점 분석 정확도도 낮아질 수 있습니다.
-- 현재 약점 개념은 단순 오답 빈도 기준으로 집계합니다.
-- v2.9 시험지는 Markdown 형식으로 생성됩니다.
-- PDF 시험지 출력은 아직 지원하지 않습니다.
-- 객관식 보기 섞기, 자동 배점, 시험 시간 설정은 아직 지원하지 않습니다.
-- 응시 모드의 채점은 AI 기반 평가이므로 실제 교수자의 채점과 다를 수 있습니다.
-- 현재 제한 시간, 임시 저장, 객관식 보기 섞기는 지원하지 않습니다.
-- 오답 저장은 자동으로 수행되지만, concept 품질은 생성된 문제의 concept 값에 의존합니다.
-- 응시 분석은 저장된 응시 기록을 기반으로 계산됩니다.
-- concept별 취약 개념은 문제 생성 시 저장된 concept 값의 품질에 영향을 받습니다.
-- 현재 분석은 최근 N개 응시 기록 기준입니다.
-- 학습 리포트는 저장된 응시 기록과 오답 데이터를 기반으로 생성됩니다.
-- 응시 기록이 부족하면 리포트 품질이 낮아질 수 있습니다.
-- AI 리포트는 학습 전략 제안이며 실제 성적 향상을 보장하지 않습니다.
-- 학습 목표는 현재 생성과 조회만 지원합니다.
-- 목표 수정, 삭제, 완료 처리는 아직 지원하지 않습니다.
-- 목표 달성 전략은 응시 기록과 오답 데이터가 충분할수록 품질이 좋아집니다.
-- 체크리스트는 목표 기반 실행 항목을 생성하지만, 실제 학습 수행 여부는 사용자가 직접 체크해야 합니다.
-- 현재 체크리스트 수정/삭제 기능은 지원하지 않습니다.
-- 학습 세션은 사용자가 직접 입력한 공부 시간과 내용을 기반으로 기록됩니다.
-- 현재 자동 타이머, 수정, 삭제 기능은 지원하지 않습니다.
-- 집중도 점수는 사용자의 주관적 평가입니다.
-- 주간 리포트는 저장된 학습 세션, 응시 기록, 체크리스트 데이터를 기반으로 생성됩니다.
-- 데이터가 부족하면 리포트 품질이 낮아질 수 있습니다.
-- 현재 리포트는 저장되지 않고 요청 시 생성됩니다.
-- 목표별 대시보드는 목표에 연결된 학습 세션과 해당 과목 응시 기록을 기반으로 생성됩니다.
-- 응시 기록이 부족하면 목표 달성 상태 판단의 정확도가 낮아질 수 있습니다.
-- 현재 목표 달성 확률을 수치 모델로 예측하지는 않습니다.
-- 스마트 복습 큐는 저장되지 않고 요청 시 생성됩니다.
-- 추천 품질은 오답 기록, 응시 기록, 체크리스트, 학습 세션 데이터의 양과 품질에 영향을 받습니다.
-- 현재 복습 큐 완료 처리 기능은 지원하지 않습니다.
-- 현재 스마트 복습 큐는 생성 후 수동 완료 처리 방식입니다.
-- 자동 알림, 반복 복습 간격 계산, 캘린더 연동은 아직 지원하지 않습니다.
+- 선택한 문제로 Markdown 시험지 생성
+- 정답과 해설 포함 여부 선택
+- 응시 기록, 상세 결과, 평균 점수와 점수 추이 조회
+- 과목별 응시 요약과 취약 개념 집계
+- 개인 학습 리포트 및 다음 응시 전략 생성
 
-## 5. 기술 스택
+### 목표와 학습 실행 관리
 
-### Frontend
-- Streamlit
-- Requests
+- 목표 점수와 시험일을 포함한 학습 목표 생성
+- 현재 성적, 남은 기간, 취약 개념을 반영한 목표 달성 전략 생성
+- 목표별 AI 체크리스트 생성 및 완료 상태 관리
+- 공부 시간, 내용, 회고, 집중도와 목표·체크리스트 연결 기록
+- 최근 학습 세션, 응시 기록, 체크리스트를 반영한 주간 리포트 생성
+- 목표별 진행률과 학습 현황을 통합한 대시보드 제공
 
-### Backend
-- FastAPI
-- Pydantic
-- SQLAlchemy
+### RAG와 품질 평가
 
-### Database
-- PostgreSQL
+- PDF 페이지 단위 텍스트 추출 및 Chroma 문서 인덱싱
+- 문서 근거 기반 질의응답과 출처 chunk 표시
+- 인덱싱된 문서 또는 오답 취약 개념 기반 예상문제 생성
+- 생성 문제와 RAG 답변에 대한 사용자 평가 저장
+- 저평가 문제, 최근 의견, 평가 요약을 제공하는 운영 대시보드
 
-### AI
-- OpenAI API
+### 스마트 복습 큐
 
-### Infra
-- Docker
-- Docker Compose
+- 오답 개념, 최근 응시 결과, 미완료 체크리스트, 학습량을 종합한 복습 항목 생성
+- 생성한 복습 큐를 PostgreSQL에 저장
+- 저장된 항목 조회, 항목별 완료 처리, 완료율 계산
+- 오늘의 복습 큐를 Markdown으로 다운로드
 
-### RAG / Vector Search
-- Chroma
-- OpenAI Embeddings
-- Vector Similarity Search
-
-## 6. 시스템 구조
-
-사용자는 Streamlit 화면에서 공부 내용을 입력하고, Frontend는 FastAPI 서버에 문제 생성을 요청합니다. FastAPI는 OpenAI API를 호출해 문제와 정답, 해설, 개념을 생성합니다. 생성된 문제와 사용자의 오답 기록은 PostgreSQL에 저장됩니다.
-
-복습 추천 API는 오답 개념 빈도를 집계하여 우선 복습할 개념을 반환합니다.
+## 3. 시스템 구성
 
 ```text
-User
- ↓
-Streamlit Frontend
- ↓
-FastAPI Backend
- ↓
-PostgreSQL
-
-FastAPI Backend
- ├─ OpenAI API (문제 생성, 채점, 임베딩, RAG 답변)
- └─ Chroma (문서 chunk 및 vector 검색)
+사용자
+  ↓
+Streamlit Frontend (:8501)
+  ↓
+FastAPI Backend (:8000)
+  ├─ PostgreSQL (:5432) — 문제, 오답, 응시 및 학습 기록
+  ├─ Chroma (:8001)     — 문서 chunk와 embedding
+  └─ OpenAI API         — 생성, 채점, 리포트 및 embedding
 ```
 
-## 7. 주요 API
-
-아래는 대표 API 사용 예시입니다. 전체 엔드포인트와 최신 요청 스키마는 실행 후 [Swagger UI](http://localhost:8000/docs)에서 확인할 수 있습니다.
-
-문제(`Question`), 채점 결과, 오답 기록(`WrongAnswer`)의 개념 필드는 모두 `concept`입니다. 문제 난이도는 `easy`, `medium`, `hard`, `exam_like` 중 하나를 사용합니다.
-
-### 1. 문제 생성 API
-
-`POST /questions/generate`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "content": "프로세스는 실행 중인 프로그램이다...",
-  "question_type": "short_answer",
-  "count": 5,
-  "difficulty": "medium"
-}
-```
-
-#### Response
-
-```json
-{
-  "user_name": "user_a",
-  "material_id": 1,
-  "questions": [
-    {
-      "question_id": 1,
-      "question_text": "프로세스와 스레드의 차이를 설명하시오.",
-      "answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
-      "explanation": "스레드는 같은 프로세스의 메모리 공간을 공유한다.",
-      "concept": "프로세스와 스레드",
-      "question_type": "short_answer",
-      "difficulty": "medium"
-    }
-  ]
-}
-```
-
-### 2. 채점 API
-
-`POST /grading/grade`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "question_id": 1,
-  "question_text": "프로세스와 스레드의 차이를 설명하시오.",
-  "correct_answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
-  "user_answer": "프로세스와 스레드는 같은 개념이다.",
-  "concept": "프로세스와 스레드"
-}
-```
-
-#### Response
-
-```json
-{
-  "is_correct": false,
-  "feedback": "프로세스와 스레드를 같은 개념으로 설명한 점이 틀렸습니다. 스레드는 프로세스 내부에서 실행되며 자원을 공유합니다.",
-  "concept": "프로세스와 스레드"
-}
-```
-
-### 3. 복습 추천 API
-
-`GET /review/recommendations`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-
-#### Response
-
-```json
-[
-  {
-    "concept": "프로세스와 스레드",
-    "wrong_count": 3,
-    "recommendation": "프로세스와 스레드 개념을 우선 복습하세요."
-  }
-]
-```
-
-### 4. 최근 생성 문제 조회 API
-
-`GET /history/questions`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-
-#### Response
-
-```json
-[
-  {
-    "id": 12,
-    "material_id": 3,
-    "question_text": "프로세스와 스레드의 차이를 설명하시오.",
-    "answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
-    "explanation": "같은 프로세스의 스레드는 메모리 공간과 자원을 공유한다.",
-    "concept": "프로세스와 스레드",
-    "question_type": "short_answer",
-    "difficulty": "medium",
-    "created_at": "2026-07-30T17:45:12.123456"
-  }
-]
-```
-
-### 5. 최근 오답 기록 조회 API
-
-`GET /history/wrong-answers`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-
-#### Response
-
-```json
-[
-  {
-    "id": 8,
-    "question_id": 12,
-    "user_answer": "프로세스와 스레드는 같은 개념이다.",
-    "correct_answer": "프로세스는 독립된 실행 단위이고, 스레드는 프로세스 내부의 실행 단위이다.",
-    "concept": "프로세스와 스레드",
-    "feedback": "스레드는 프로세스 내부에서 실행되며 같은 프로세스의 자원을 공유합니다.",
-    "is_correct": false,
-    "created_at": "2026-07-30T17:48:31.654321"
-  }
-]
-```
-
-### 6. PDF 텍스트 추출 API
-
-`POST /materials/extract-pdf`
-
-#### Request
-
-Form Data:
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-| subject | 과목명 |
-| start_page | 시작 페이지 |
-| end_page | 끝 페이지 |
-| file | PDF 파일 |
-
-#### Response
-
-```json
-{
-  "success": true,
-  "user_name": "user_a",
-  "material_id": 1,
-  "subject": "운영체제",
-  "filename": "os_chapter1.pdf",
-  "page_count": 20,
-  "selected_start_page": 3,
-  "selected_end_page": 7,
-  "selected_page_count": 5,
-  "text_length": 8432,
-  "preview": "운영체제란...",
-  "content": "전체 추출 텍스트"
-}
-```
-
-### 7. 시험 D-Day 복습 계획 API
-
-`GET /review/study-plan`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-| exam_date | 시험 날짜, YYYY-MM-DD 형식 |
-
-#### Response
-
-```json
-{
-  "success": true,
-  "user_name": "user_a",
-  "exam_date": "2026-08-15",
-  "days_left": 14,
-  "weak_concepts": [
-    {
-      "concept": "프로세스와 스레드",
-      "wrong_count": 3
-    }
-  ],
-  "plan": [
-    {
-      "day": "D-14 ~ D-8",
-      "task": "오답 빈도가 높은 개념부터 차근차근 복습하고, 관련 개념을 다시 정리하세요.",
-      "concepts": ["프로세스와 스레드"]
-    }
-  ]
-}
-```
-
-### 8. 문제 평가 저장 API
-
-`POST /feedback/question`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "question_id": 1,
-  "quality_score": 5,
-  "explanation_score": 4,
-  "exam_relevance_score": 5,
-  "difficulty_match_score": 4,
-  "comment": "시험 대비에 도움이 되는 문제였습니다."
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "문제 평가가 저장되었습니다.",
-  "feedback_id": 1
-}
-```
-
-### 9. 문제 평가 요약 API
-
-`GET /feedback/summary`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-
-#### Response
-
-```json
-{
-  "feedback_count": 3,
-  "avg_quality_score": 4.67,
-  "avg_explanation_score": 4.33,
-  "avg_exam_relevance_score": 4.67,
-  "avg_difficulty_match_score": 4.0
-}
-```
-
-### 10. 관리자용 평가 대시보드 API
-
-`GET /feedback/admin-dashboard`
-
-#### Response
-
-```json
-{
-  "feedback_count": 10,
-  "summary": {
-    "avg_quality_score": 4.1,
-    "avg_explanation_score": 4.0,
-    "avg_exam_relevance_score": 3.8,
-    "avg_difficulty_match_score": 4.2
-  },
-  "low_score_questions": [],
-  "low_exam_relevance_questions": [],
-  "recent_comments": []
-}
-```
-
-### 11. RAG 문서 인덱싱 API
-
-`POST /rag/index`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "material_id": 1,
-  "content": "운영체제 강의자료 텍스트..."
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "문서 인덱싱이 완료되었습니다.",
-  "chunk_count": 8,
-  "material_id": 1
-}
-```
-
-### 12. RAG 문서 질의응답 API
-
-`POST /rag/ask`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "question": "프로세스와 스레드의 차이는?",
-  "top_k": 5,
-  "material_id": 1
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "search_scope": "material_id=1 문서",
-  "material_id": 1,
-  "answer": "프로세스는...",
-  "sources": [
-    {
-      "source_number": 1,
-      "material_id": 1,
-      "page_number": 12,
-      "chunk_index": 0,
-      "distance": 0.23,
-      "preview": "프로세스는 실행 중인 프로그램..."
-    }
-  ]
-}
-```
-
-### 13. RAG 문서 목록 조회 API
-
-`GET /rag/documents`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-| subject | 과목명, 선택 |
-
-#### Response
-
-```json
-{
-  "success": true,
-  "document_count": 1,
-  "documents": [
-    {
-      "user_name": "user_a",
-      "subject": "운영체제",
-      "material_id": 1,
-      "chunk_count": 8,
-      "pages": [2, 3, 4],
-      "page_count": 3
-    }
-  ]
-}
-```
-
-### 14. RAG 문서 삭제 API
-
-`DELETE /rag/documents`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "material_id": 1
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "인덱싱 문서가 삭제되었습니다.",
-  "deleted_count": 8,
-  "material_id": 1
-}
-```
-
-### 15. RAG 답변 평가 저장 API
-
-`POST /rag-feedback/answer`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "material_id": 1,
-  "question": "프로세스와 스레드의 차이는?",
-  "answer": "프로세스는...",
-  "accuracy_score": 5,
-  "grounding_score": 4,
-  "source_relevance_score": 5,
-  "helpfulness_score": 5,
-  "comment": "출처가 명확해서 좋았습니다."
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "RAG 답변 평가가 저장되었습니다.",
-  "feedback_id": 1
-}
-```
-
-### 16. RAG 답변 평가 요약 API
-
-`GET /rag-feedback/summary`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-| subject | 과목명, 선택 |
-
-#### Response
-
-```json
-{
-  "feedback_count": 3,
-  "avg_accuracy_score": 4.67,
-  "avg_grounding_score": 4.33,
-  "avg_source_relevance_score": 4.67,
-  "avg_helpfulness_score": 4.0
-}
-```
-
-### 17. RAG 기반 예상문제 생성 API
-
-`POST /rag-questions/generate`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "material_id": 1,
-  "question_type": "short_answer",
-  "difficulty": "exam_like",
-  "count": 5,
-  "top_k": 8
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "RAG 기반 예상문제가 생성되었습니다.",
-  "question_count": 5,
-  "material_id": 1,
-  "questions": [
-    {
-      "id": 10,
-      "question": "프로세스와 스레드의 차이를 설명하시오.",
-      "answer": "프로세스는...",
-      "explanation": "문서에서는...",
-      "concept": "프로세스와 스레드",
-      "question_type": "short_answer",
-      "difficulty": "exam_like",
-      "source": {
-        "material_id": 1,
-        "page_number": 12,
-        "chunk_index": 0
-      }
-    }
-  ]
-}
-```
-
-### 18. 약점 기반 RAG 복습 문제 생성 API
-
-`POST /weakness-rag-questions/generate`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "material_id": 1,
-  "weakness_count": 3,
-  "question_count": 5,
-  "question_type": "short_answer",
-  "difficulty": "exam_like",
-  "top_k_per_concept": 3
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "약점 기반 RAG 복습 문제가 생성되었습니다.",
-  "weakness_concepts": [
-    {
-      "concept": "프로세스와 스레드",
-      "wrong_count": 3
-    }
-  ],
-  "used_chunk_count": 6,
-  "question_count": 5,
-  "material_id": 1,
-  "questions": [
-    {
-      "id": 21,
-      "question": "프로세스와 스레드의 차이를 설명하시오.",
-      "answer": "프로세스는...",
-      "explanation": "문서에서는...",
-      "concept": "프로세스와 스레드",
-      "question_type": "short_answer",
-      "difficulty": "exam_like",
-      "source": {
-        "material_id": 1,
-        "page_number": 12,
-        "chunk_index": 0
-      }
-    }
-  ]
-}
-```
-
-### 19. 시험지용 문제 목록 조회 API
-
-`GET /exam-papers/questions`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-| subject | 과목명 |
-| limit | 조회할 최근 문제 수 |
-
-#### Response
-
-```json
-{
-  "success": true,
-  "question_count": 2,
-  "questions": [
-    {
-      "id": 1,
-      "question": "프로세스와 스레드의 차이를 설명하시오.",
-      "answer": "프로세스는...",
-      "explanation": "해설...",
-      "concept": "프로세스와 스레드",
-      "question_type": "short_answer",
-      "difficulty": "exam_like"
-    }
-  ]
-}
-```
-
-### 20. 시험지 생성 API
-
-`POST /exam-papers/generate`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "question_ids": [1, 2, 3],
-  "title": "운영체제 중간고사 대비 연습 시험지",
-  "include_answers": false,
-  "include_explanations": false
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "시험지가 생성되었습니다.",
-  "title": "운영체제 중간고사 대비 연습 시험지",
-  "question_count": 3,
-  "include_answers": false,
-  "include_explanations": false,
-  "markdown": "# 운영체제 중간고사 대비 연습 시험지..."
-}
-```
-
-### 21. 시험 응시 제출 API
-
-`POST /exam-attempts/submit`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "title": "운영체제 연습 응시",
-  "answers": [
-    {
-      "question_id": 1,
-      "user_answer": "프로세스는 실행 중인 프로그램이고, 스레드는 프로세스 안의 실행 단위입니다."
-    }
-  ]
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "시험 응시 결과가 저장되었습니다.",
-  "attempt_id": 1,
-  "title": "운영체제 연습 응시",
-  "subject": "운영체제",
-  "total_questions": 5,
-  "correct_count": 4,
-  "score": 80,
-  "results": [
-    {
-      "question_id": 1,
-      "question": "프로세스와 스레드의 차이를 설명하시오.",
-      "user_answer": "프로세스는...",
-      "correct_answer": "프로세스는...",
-      "is_correct": true,
-      "feedback": "핵심 개념을 잘 설명했습니다.",
-      "concept": "프로세스와 스레드"
-    }
-  ]
-}
-```
-
-### 22. 응시 기록 조회 API
-
-`GET /exam-attempts/history`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-| subject | 과목명, 선택 |
-| limit | 조회할 최근 응시 기록 수 |
-
-### 23. 응시 결과 분석 API
-
-`GET /exam-attempts/analytics`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-| subject | 과목명, 선택 |
-| limit | 분석할 최근 응시 기록 수 |
-
-#### Response
-
-```json
-{
-  "success": true,
-  "attempt_count": 5,
-  "average_score": 76.0,
-  "latest_score": 80,
-  "score_trend": [
-    {
-      "attempt_id": 1,
-      "title": "운영체제 연습 응시",
-      "subject": "운영체제",
-      "score": 80,
-      "correct_count": 4,
-      "total_questions": 5,
-      "created_at": "2026-08-08T12:00:00"
-    }
-  ],
-  "weak_concepts": [
-    {
-      "concept": "프로세스와 스레드",
-      "wrong_count": 3
-    }
-  ],
-  "subject_summary": [
-    {
-      "subject": "운영체제",
-      "attempt_count": 3,
-      "avg_score": 78.33,
-      "max_score": 90,
-      "min_score": 60
-    }
-  ]
-}
-```
-
-### 24. 개인 맞춤 학습 리포트 생성 API
-
-`POST /study-reports/generate`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "limit": 20
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "개인 맞춤 학습 리포트가 생성되었습니다.",
-  "attempt_summary": {
-    "attempt_count": 5,
-    "average_score": 76.0,
-    "latest_score": 80,
-    "best_score": 90,
-    "lowest_score": 60
-  },
-  "weak_concepts": [
-    {
-      "concept": "프로세스와 스레드",
-      "wrong_count": 3
-    }
-  ],
-  "score_trend": [
-    {
-      "attempt_id": 1,
-      "title": "운영체제 연습 응시",
-      "subject": "운영체제",
-      "score": 80
-    }
-  ],
-  "report": "# 개인 맞춤 학습 리포트..."
-}
-```
-
-### 25. 학습 목표 생성 API
-
-`POST /study-goals`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "title": "운영체제 중간고사 목표",
-  "target_score": 85,
-  "exam_date": "2026-10-20"
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "학습 목표가 생성되었습니다.",
-  "goal": {
-    "id": 1,
-    "subject": "운영체제",
-    "title": "운영체제 중간고사 목표",
-    "target_score": 85,
-    "exam_date": "2026-10-20"
-  }
-}
-```
-
-### 26. 응시 기록 조회 API
-
-`GET /study-goals/{goal_id}/status`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-
-### 27. 목표 달성 전략 생성 API
-
-`POST /study-goals/strategy`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "goal_id": 1
-}
-```
-
-### 28. 학습 체크리스트 생성 API
-
-`POST /study-checklists/generate`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "goal_id": 1,
-  "item_count": 5
-}
-```
-
-### 29. 학습 체크리스트 조회 API
-
-`GET /study-checklists`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-| goal_id | 학습 목표 ID, 선택 |
-| subject | 과목명, 선택 |
-
-### 30. 학습 체크리스트 상태 변경 API
-
-`PATCH /study-checklists/{item_id}`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "is_done": true
-}
-```
-
-### 31. 학습 세션 생성 API
-
-`POST /study-sessions`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "goal_id": 1,
-  "checklist_item_id": 3,
-  "duration_minutes": 60,
-  "content": "프로세스와 스레드 개념 복습",
-  "reflection": "스레드 동기화가 아직 헷갈림",
-  "focus_score": 4
-}
-```
-
-### 32. 학습 세션 조회 API
-
-`GET /study-checklists`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-| subject | 과목명, 선택 |
-| goal_id | 학습 목표 ID, 선택 |
-| limit | 조회할 최근 세션 수 |
-
-### 33. 학습 세션 요약 API
-
-`GET /study-sessions/summary`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-| subject | 과목명, 선택 |
-
-### 34. 주간 학습 리포트 생성 API
-
-`POST /weekly-reports/generate`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "days": 7
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "주간 학습 리포트가 생성되었습니다.",
-  "period_summary": {
-    "days": 7,
-    "start_at": "2026-08-01T00:00:00",
-    "end_at": "2026-08-08T00:00:00"
-  },
-  "session_summary": {
-    "session_count": 3,
-    "total_minutes": 180,
-    "total_hours": 3.0,
-    "avg_focus_score": 4.0
-  },
-  "attempt_summary": {
-    "attempt_count": 2,
-    "avg_score": 75.0,
-    "latest_score": 80
-  },
-  "weak_concepts": [
-    {
-      "concept": "프로세스와 스레드",
-      "wrong_count": 2
-    }
-  ],
-  "checklist_summary": {
-    "total_count": 5,
-    "done_count": 3,
-    "progress_rate": 60.0
-  },
-  "report": "# 주간 학습 요약 리포트..."
-}
-```
-
-### 35. 목표별 대시보드 API
-
-`POST /goal-dashboard`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "goal_id": 1
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "목표별 대시보드가 생성되었습니다.",
-  "goal": {
-    "id": 1,
-    "subject": "운영체제",
-    "title": "운영체제 중간고사 목표",
-    "target_score": 85,
-    "exam_date": "2026-10-20",
-    "days_left": 73
-  },
-  "checklist_summary": {
-    "total_count": 5,
-    "done_count": 3,
-    "pending_count": 2,
-    "progress_rate": 60.0
-  },
-  "session_summary": {
-    "session_count": 4,
-    "total_hours": 5.5,
-    "avg_focus_score": 4.0
-  },
-  "attempt_summary": {
-    "attempt_count": 3,
-    "avg_score": 76.67,
-    "latest_score": 80,
-    "best_score": 85,
-    "target_score": 85,
-    "score_gap": 8.33
-  },
-  "weak_concepts": [
-    {
-      "concept": "프로세스와 스레드",
-      "wrong_count": 2
-    }
-  ],
-  "comment": "# 목표 상태 코멘트..."
-}
-```
-
-### 36. 스마트 복습 큐 생성 API
-
-`POST /smart-review/queue/save`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "subject": "운영체제",
-  "limit": 5
-}
-```
-
-#### Response
-
-```json
-{
-  "success": true,
-  "message": "스마트 복습 큐가 생성되었습니다.",
-  "weak_concepts": [
-    {
-      "concept": "프로세스와 스레드",
-      "wrong_count": 3
-    }
-  ],
-  "pending_checklists": [
-    {
-      "id": 1,
-      "subject": "운영체제",
-      "title": "프로세스와 스레드 복습",
-      "priority": 1
-    }
-  ],
-  "session_summary": {
-    "period_days": 7,
-    "session_count": 3,
-    "total_hours": 4.5,
-    "avg_focus_score": 4.0
-  },
-  "attempt_summary": {
-    "period_days": 7,
-    "attempt_count": 2,
-    "avg_score": 75.0,
-    "latest_score": 80
-  },
-  "queue": "# 오늘의 스마트 복습 큐..."
-}
-```
-
-### 37. 스마트 복습 큐 조회 API
-
-`GET /smart-review/queue/items`
-
-#### Query Parameters
-
-| 이름 | 설명 |
-|---|---|
-| user_name | 사용자 이름 |
-| subject | 과목명, 선택 |
-| include_done | 완료 항목 포함 여부 |
-| limit | 조회 개수 |
-
-### 38. 스마트 복습 큐 상태 변경 API
-
-`PATCH /smart-review/queue/items/{item_id}`
-
-#### Request
-
-```json
-{
-  "user_name": "user_a",
-  "is_done": true
-}
-```
-
-## 8. 실행 방법
+| 영역 | 기술 |
+| --- | --- |
+| Frontend | Streamlit, Requests, Pandas |
+| Backend | FastAPI, Pydantic, SQLAlchemy, Alembic |
+| Database | PostgreSQL |
+| AI | OpenAI API |
+| RAG | Chroma, OpenAI Embeddings, Vector Similarity Search |
+| Infra | Docker, Docker Compose |
+
+정확한 Python 패키지 버전은 `backend/requirements.txt`와 `frontend/requirements.txt`에 고정되어 있습니다.
+
+## 4. 실행 방법
 
 ### 사전 요구사항
 
 - Docker 및 Docker Compose
-- OpenAI API key
+- AI 기능을 실제로 사용하려면 OpenAI API key
 
-### 1. 환경 변수 설정
+### 1. 환경 변수 준비
 
-`backend/.env` 파일을 생성합니다.
+프로젝트 루트의 `.env.example`을 `.env`로 복사하고 DB 비밀번호를 변경합니다.
 
 ```env
-DATABASE_URL=postgresql://postgres:password@db:5432/cs_exam_coach
+POSTGRES_PASSWORD=change-me
+```
+
+`backend/.env.example`을 `backend/.env`로 복사하고 애플리케이션 환경 변수를 설정합니다.
+
+```env
+DATABASE_URL=postgresql://postgres:change-me@db:5432/cs_exam_coach
 OPENAI_API_KEY=your_openai_api_key
 OPENAI_CHAT_MODEL=gpt-4.1-mini
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+CHROMA_HOST=chroma
+CHROMA_PORT=8000
 ```
 
-`DATABASE_URL`의 사용자명, 비밀번호, DB 이름은 `docker-compose.yml`의 PostgreSQL 설정과 같아야 합니다. 모델 환경변수는 생략하면 위 값이 기본으로 사용됩니다.
+Docker Compose에서는 루트 `.env`의 `POSTGRES_PASSWORD`로 백엔드 DB 연결 문자열을 구성합니다. 백엔드를 호스트에서 직접 실행한다면 `DATABASE_URL`의 호스트를 `localhost`로, Chroma 포트를 `8001`로 설정합니다.
 
-### 2. DB와 Chroma 실행
+### 2. DB와 Chroma 시작
 
 ```bash
 docker compose up -d db chroma
 ```
 
-### 3. DB migration 적용
+### 3. DB 마이그레이션 적용
 
 ```bash
 docker compose run --rm backend alembic upgrade head
 ```
 
-### 4. 전체 서비스 실행
+### 4. 전체 서비스 시작
 
 ```bash
 docker compose up --build
@@ -1320,68 +126,207 @@ docker compose up --build
 
 ### 5. 접속 주소
 
-```text
-Frontend: http://localhost:8501
-Backend API Docs: http://localhost:8000/docs
-Backend OpenAPI JSON: http://localhost:8000/openapi.json
-```
+| 서비스 | 주소 |
+| --- | --- |
+| Frontend | http://localhost:8501 |
+| Swagger UI | http://localhost:8000/docs |
+| OpenAPI JSON | http://localhost:8000/openapi.json |
 
-## 9. Database Migration
+## 5. 데이터베이스 마이그레이션
 
-이 프로젝트는 Alembic을 사용해 데이터베이스 스키마를 관리합니다.
-
-### 모델 변경 후 migration 생성
+모델을 변경한 후 새 migration을 생성합니다.
 
 ```bash
 docker compose run --rm backend alembic revision --autogenerate -m "Migration message"
 ```
 
-### migration 적용
+생성된 migration 내용을 검토한 후 적용합니다.
 
 ```bash
 docker compose run --rm backend alembic upgrade head
 ```
 
-### 주의 사항
+스키마는 Alembic으로 관리합니다. `Base.metadata.create_all()`을 별도로 실행하지 마세요.
 
-기존에는 Base.metadata.create_all()로 테이블을 자동 생성했지만, v2.5부터는 Alembic migration을 통해 DB 스키마를 관리합니다.
+## 6. 테스트
 
-## 10. Backend Structure
+현재 회귀 테스트는 Python 표준 `unittest`로 실행합니다.
 
-v2.6부터 백엔드 코드를 역할별로 분리했습니다.
+PowerShell:
 
-```text
-backend/app
-├─ core/
-│  └─ config.py          # 환경변수 및 설정 관리
-├─ routers/              # HTTP API 엔드포인트
-├─ rag_service.py         # RAG 인덱싱, 검색, 답변 생성 로직
-├─ crud_rag_feedback.py   # RAG 답변 평가 DB 로직
-├─ models.py              # SQLAlchemy DB 모델
-├─ schemas.py             # Pydantic 요청/응답 스키마
-├─ database.py            # DB 연결 및 세션 관리
-└─ main.py                # FastAPI 앱 진입점
+```powershell
+$env:PYTHONPATH="backend"
+python -m unittest discover -s backend/tests -v
 ```
 
-### 구조 개선 내용
+Bash:
 
-- 환경변수 관리를 core/config.py로 통합
-- RAG API 실패 케이스를 HTTPException 기반으로 처리
-- RAG 답변 평가 DB 로직을 router에서 crud_rag_feedback.py로 분리
-- router는 HTTP 요청/응답 처리에 집중하도록 정리
+```bash
+PYTHONPATH=backend python -m unittest discover -s backend/tests -v
+```
 
-## 11. 시연 흐름
+## 7. API 요약
 
-1. 과목을 선택합니다.
-2. 공부 내용을 입력합니다.
-3. 문제 유형과 문제 개수를 선택합니다.
-4. AI가 시험 대비 문제를 생성합니다.
-5. 사용자가 답안을 입력합니다.
-6. AI가 답안을 채점하고 피드백을 제공합니다.
-7. 오답 개념이 저장됩니다.
-8. 복습 추천 화면에서 많이 틀린 개념을 확인합니다.
+요청 필드, 허용 범위, 응답 모델의 최신 정의는 실행 중인 [Swagger UI](http://localhost:8000/docs)를 기준으로 확인하세요.
 
-## 12. 시연 화면
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| GET | `/` | API 이름과 버전 확인 |
+
+### 문제·채점·이력
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| POST | `/questions/generate` | 학습 자료 기반 문제 생성 및 저장 |
+| POST | `/grading/grade` | 단일 답안 채점 및 오답 저장 |
+| GET | `/history/questions` | 최근 생성 문제 조회 |
+| GET | `/history/wrong-answers` | 최근 오답 조회 |
+| GET | `/review/recommendations` | 오답 개념별 복습 우선순위 조회 |
+| GET | `/review/study-plan` | 시험일까지의 복습 계획 생성 |
+| POST | `/materials/extract-pdf` | PDF 페이지 범위 텍스트 추출 및 저장 |
+
+### 문제 및 RAG 평가
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| POST | `/feedback/question` | 생성 문제 평가 저장 |
+| GET | `/feedback/question/{question_id}` | 특정 문제 평가 요약 |
+| GET | `/feedback/summary` | 전체 문제 평가 요약 |
+| GET | `/feedback/low-score-questions` | 품질 점수가 낮은 문제 조회 |
+| GET | `/feedback/low-exam-relevance` | 시험 적합도가 낮은 문제 조회 |
+| GET | `/feedback/recent-comments` | 최근 평가 의견 조회 |
+| GET | `/feedback/admin-dashboard` | 문제 평가 운영 대시보드 |
+| POST | `/rag-feedback/answer` | RAG 답변 평가 저장 |
+| GET | `/rag-feedback/summary` | RAG 평가 요약 |
+| GET | `/rag-feedback/recent` | 최근 RAG 평가 조회 |
+
+### RAG
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| POST | `/rag/index` | 문서 페이지 또는 텍스트 인덱싱 |
+| POST | `/rag/ask` | 인덱싱된 문서 기반 질의응답 |
+| GET | `/rag/documents` | 인덱싱된 문서 목록 조회 |
+| DELETE | `/rag/documents` | 지정 문서의 Chroma chunk 삭제 |
+| POST | `/rag-questions/generate` | 문서 기반 예상문제 생성 |
+| POST | `/weakness-rag-questions/generate` | 오답 취약 개념과 문서 기반 문제 생성 |
+
+### 시험과 분석
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| GET | `/exam-papers/questions` | 시험지에 사용할 문제 조회 |
+| POST | `/exam-papers/generate` | Markdown 시험지 생성 |
+| POST | `/exam-attempts/submit` | 전체 답안 채점 및 응시 결과 저장 |
+| GET | `/exam-attempts/history` | 응시 기록 조회 |
+| GET | `/exam-attempts/{attempt_id}` | 응시 상세 결과 조회 |
+| GET | `/exam-attempts/analytics` | 점수 추이와 취약 개념 분석 |
+| POST | `/study-reports/generate` | 개인 맞춤 학습 리포트 생성 |
+
+### 목표·체크리스트·학습 세션
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| POST | `/study-goals` | 학습 목표 생성 |
+| GET | `/study-goals` | 학습 목표 조회 |
+| GET | `/study-goals/{goal_id}/status` | 목표 진행 상태 조회 |
+| POST | `/study-goals/strategy` | 목표 달성 전략 생성 |
+| POST | `/study-checklists/generate` | 목표 기반 체크리스트 생성 |
+| GET | `/study-checklists` | 체크리스트 조회 |
+| PATCH | `/study-checklists/{item_id}` | 체크리스트 완료 상태 변경 |
+| POST | `/study-sessions` | 학습 세션 기록 |
+| GET | `/study-sessions` | 학습 세션 조회 |
+| GET | `/study-sessions/summary` | 과목별 학습시간 요약 |
+| POST | `/weekly-reports/generate` | 주간 학습 리포트 생성 |
+| POST | `/goal-dashboard` | 목표별 통합 대시보드 생성 |
+
+### 스마트 복습 큐
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| POST | `/smart-review/queue/save` | 복습 큐 생성 및 저장 |
+| GET | `/smart-review/queue/items` | 저장된 복습 큐 조회 |
+| PATCH | `/smart-review/queue/items/{item_id}` | 복습 항목 완료 상태 변경 |
+
+## 8. 제한 사항
+
+### 사용자와 보안
+
+- 회원가입, 로그인, 세션, 역할 기반 권한 관리가 없습니다.
+- 사용자는 `user_name` 문자열로만 구분되므로 같은 이름을 입력하면 같은 기록에 접근할 수 있습니다.
+- 평가 운영 대시보드에 별도의 관리자 인증이 없습니다.
+- Docker Compose의 서비스 포트가 호스트에 노출됩니다. 외부 배포 시 방화벽, TLS, 인증, 비밀 관리가 필요합니다.
+- 기본 PostgreSQL 비밀번호는 로컬 개발 편의를 위한 값이므로 실제 배포에서는 반드시 변경해야 합니다.
+
+### AI 생성과 채점
+
+- AI 결과는 비결정적이며 문제, 정답, 해설, 개념 태그와 채점 결과의 정확성을 보장하지 않습니다.
+- 채점 결과는 교수자 또는 공식 채점 기준과 다를 수 있습니다.
+- 오답 분석과 추천 품질은 생성된 `concept` 값과 누적 데이터의 품질에 크게 의존합니다.
+- 리포트와 전략은 학습 보조 제안이며 성적 향상이나 목표 달성을 보장하지 않습니다.
+- OpenAI API 사용량, 입력 길이, 모델 가용성 및 네트워크 상태의 영향을 받습니다.
+
+### PDF와 RAG
+
+- 텍스트가 포함된 PDF만 지원하며 스캔본 OCR은 지원하지 않습니다.
+- 파일 크기 제한과 악성 PDF 전용 검증이 아직 없습니다.
+- PDF 텍스트 추출 품질에 따라 페이지 정보와 검색 근거의 정확도가 달라질 수 있습니다.
+- 한 번의 질의에서 여러 `material_id`를 조합해 선택하는 기능은 없습니다.
+- RAG 문서 삭제는 Chroma의 chunk만 삭제하며 PostgreSQL의 `StudyMaterial`은 유지합니다.
+- 표시되는 source는 검색된 페이지와 chunk 기준이며 답변 전체의 완전한 근거를 보장하지 않습니다.
+- 유사한 chunk에서 비슷한 문제가 반복 생성될 수 있습니다.
+- 저장된 사용자 평가는 현재 프롬프트나 모델을 자동 개선하는 학습 데이터로 연결되지 않습니다.
+
+### 시험과 학습 관리
+
+- 시험지는 Markdown만 지원하며 PDF 출력, 자동 배점, 제한 시간, 임시 저장, 보기 섞기는 지원하지 않습니다.
+- 목표는 생성과 조회만 지원하며 수정, 삭제, 완료 처리는 지원하지 않습니다.
+- 체크리스트는 완료 상태만 변경할 수 있으며 내용 수정과 삭제는 지원하지 않습니다.
+- 학습 세션은 수동 입력 방식이며 자동 타이머, 수정, 삭제 기능은 없습니다.
+- 집중도와 RAG 품질 평가는 사용자의 주관적 점수입니다.
+- 주간·개인 학습 리포트와 목표 대시보드는 요청 시 생성되며 별도 결과물로 저장되지 않습니다.
+- 스마트 복습 큐는 저장하고 수동 완료 처리할 수 있지만 자동 알림, 간격 반복 계산, 캘린더 연동은 없습니다.
+
+### 운영과 품질 보증
+
+- API는 동기 방식으로 AI, PDF 및 일부 DB 작업을 처리하므로 큰 요청이나 동시 사용자가 많을 때 지연될 수 있습니다.
+- 요청 속도 제한, 백그라운드 작업 큐, 중앙 로그, 모니터링과 장애 알림이 없습니다.
+- 현재 자동 테스트는 핵심 회귀 사례 중심이며 실제 PostgreSQL·Chroma·OpenAI를 연결한 통합 테스트와 브라우저 E2E 테스트는 없습니다.
+- 날짜·시간은 timezone 정보가 없는 UTC 값으로 저장되므로 사용자별 시간대 표시는 별도 처리가 필요합니다.
+
+## 9. 프로젝트 구조
+
+```text
+cs-exam-coach/
+├─ backend/
+│  ├─ alembic/              # DB migration
+│  ├─ app/
+│  │  ├─ core/config.py     # 환경 변수와 모델 설정
+│  │  ├─ routers/           # FastAPI endpoint
+│  │  ├─ ai_service.py      # AI 생성·채점·리포트
+│  │  ├─ rag_service.py     # Chroma 인덱싱·검색·RAG
+│  │  ├─ models.py          # SQLAlchemy model
+│  │  ├─ schemas.py         # Pydantic request/response schema
+│  │  ├─ database.py        # DB engine과 session
+│  │  └─ main.py            # FastAPI 진입점
+│  └─ tests/                # 회귀 테스트
+├─ frontend/
+│  └─ app.py                # Streamlit UI
+├─ docs/images/             # README 화면 이미지
+└─ docker-compose.yml
+```
+
+## 10. 기본 사용 흐름
+
+1. 사용자 이름과 과목을 입력합니다.
+2. 학습 내용을 직접 입력하거나 PDF에서 텍스트를 추출합니다.
+3. 문제 유형, 난이도, 개수를 선택해 예상문제를 생성합니다.
+4. 개별 문제를 풀거나 시험지를 구성해 모의시험에 응시합니다.
+5. 채점 결과와 문항별 피드백을 확인합니다.
+6. 오답 추천, 학습 목표, 체크리스트 또는 스마트 복습 큐로 다음 학습을 계획합니다.
+7. 학습 세션을 기록하고 주간 리포트와 목표 대시보드에서 진행 상황을 확인합니다.
+
+## 11. 화면 예시
 
 ### 메인 화면
 
@@ -1398,12 +343,3 @@ backend/app
 ### 복습 추천
 
 ![복습 추천](docs/images/review-recommendation.png)
-
-## 13. 향후 개선 사항
-
-- 회원가입·로그인과 역할 기반 접근 제어
-- 과목별 학습 성과 및 난이도별 정답률 통계
-- 사용자 성취도에 따른 문제 난이도 자동 조절
-- OCR 기반 스캔 PDF 지원
-- PDF 시험지 출력, 자동 배점, 시험 시간 설정
-- 스터디 그룹 문제·시험지 공유

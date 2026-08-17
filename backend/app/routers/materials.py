@@ -11,8 +11,8 @@ router = APIRouter(prefix="/materials", tags=["materials"])
 async def extract_pdf_text(
     user_name: str = Form("default_user"),
     subject: str = Form(...),
-    start_page: int | None = Form(None),
-    end_page: int | None = Form(None),
+    start_page: int | None = Form(None, ge=1),
+    end_page: int | None = Form(None, ge=1),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):

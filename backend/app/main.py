@@ -24,10 +24,12 @@ from app.routers import (
 
 # Base.metadata.create_all(bind=engine)
 
+APP_VERSION = "0.3.9"
+
 app = FastAPI(
     title="CS Exam Coach API",
     description="컴소 전공 시험 대비 AI 문제 생성 및 오답 복습 API",
-    version="0.3.9",
+    version=APP_VERSION,
 )
 
 app.include_router(questions.router)
@@ -54,5 +56,5 @@ app.include_router(smart_review.router)
 def root():
     return {
         "message": "Welcome to the CS Exam Coach API!",
-        "version": "0.2.9",
+        "version": APP_VERSION,
     }
