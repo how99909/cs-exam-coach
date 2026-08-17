@@ -330,16 +330,16 @@ cs-exam-coach/
 
 ### 메인 화면
 
-![메인 화면](docs\images\main.png)
+![메인 화면](docs/images/main.png)
 
 ### 문제 생성
 
-![문제 생성](docs\images\question-generation.png)
+![문제 생성](docs/images/question-generation.png)
 
 ### 채점 결과
 
-![채점 결과](docs\images\grading-result.png)
+![채점 결과](docs/images/grading-result.png)
 
 ### 복습 추천
 
-![복습 추천](docs\images\review-recommendation.png)
+![복습 추천](docs/images/review-recommendation.png)
