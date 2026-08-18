@@ -215,3 +215,8 @@ class SmartReviewQueueSaveRequest(BaseModel):
 class SmartReviewQueueUpdateRequest(BaseModel):
     user_name: str = "default_user"
     is_done: bool
+
+
+class HomeDashboardRequest(BaseModel):
+    user_name: str = "default_user"
+    subject: str | None = None
