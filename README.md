@@ -2,9 +2,9 @@
 
 컴퓨터공학 전공 시험 대비를 위한 AI 문제 생성·채점·복습 관리 서비스입니다.
 
-- 제품 버전: **v4.0**
-- API 버전: **0.4.0**
-- 최근 주요 변경: 학습 목표·최근 활동·복습 현황·취약 개념을 통합한 홈 대시보드 추가
+- 제품 버전: **v4.1**
+- API 버전: **0.4.1**
+- 최근 주요 변경: 사용자 가입·로그인과 기본 JWT Bearer 인증 추가
 
 ## 1. 프로젝트 소개
 
@@ -13,6 +13,14 @@ CS Exam Coach는 사용자가 직접 입력하거나 PDF에서 추출한 학습 
 단순한 자료 요약보다 컴퓨터공학 시험에서 자주 다루는 개념 비교, 코드 추적, SQL 작성, 서술형 문제의 생성과 반복 학습에 초점을 맞춥니다.
 
 ## 2. 주요 기능
+
+### 사용자 인증
+
+- `user_name`, 선택 이메일, 비밀번호를 이용한 사용자 가입
+- bcrypt 기반 비밀번호 해시 저장 및 로그인 검증
+- 로그인 성공 시 만료 시간이 포함된 JWT access token 발급
+- Bearer token으로 현재 로그인 사용자 정보 조회
+- Streamlit 사이드바 로그인·회원가입·로그아웃과 API 인증 헤더 연동
 
 ### 문제 생성과 채점
 
@@ -106,9 +114,14 @@ OPENAI_CHAT_MODEL=gpt-4.1-mini
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 CHROMA_HOST=chroma
 CHROMA_PORT=8000
+JWT_SECRET_KEY=replace-with-a-long-random-secret
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=1440
 ```
 
 Docker Compose에서는 루트 `.env`의 `POSTGRES_PASSWORD`로 백엔드 DB 연결 문자열을 구성합니다. 백엔드를 호스트에서 직접 실행한다면 `DATABASE_URL`의 호스트를 `localhost`로, Chroma 포트를 `8001`로 설정합니다.
+
+`JWT_SECRET_KEY`는 토큰 서명에 사용되므로 배포 환경마다 충분히 긴 무작위 값으로 반드시 변경하세요. 기본 access token 유효 기간은 1,440분(24시간)이며 `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`로 조정할 수 있습니다.
 
 ### 2. DB와 Chroma 시작
 
@@ -176,6 +189,51 @@ PYTHONPATH=backend python -m unittest discover -s backend/tests -v
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | `/` | API 이름과 버전 확인 |
+
+### 인증
+
+| Method | Endpoint | 인증 | 설명 |
+| --- | --- | --- | --- |
+| POST | `/auth/register` | 불필요 | 사용자 가입 |
+| POST | `/auth/login` | 불필요 | JWT access token 발급 |
+| GET | `/auth/me` | Bearer token | 현재 토큰의 사용자 정보 조회 |
+
+회원가입 요청:
+
+```json
+{
+  "user_name": "student1",
+  "email": "student1@example.com",
+  "password": "password123"
+}
+```
+
+`email`은 선택 사항이며, 비밀번호는 8자 이상이어야 합니다. `user_name`과 입력된 이메일은 각각 중복될 수 없습니다.
+
+로그인 요청과 응답:
+
+```json
+{
+  "user_name": "student1",
+  "password": "password123"
+}
+```
+
+```json
+{
+  "access_token": "<jwt>",
+  "token_type": "bearer",
+  "user_name": "student1"
+}
+```
+
+인증이 필요한 요청에는 다음 헤더를 전달합니다.
+
+```http
+Authorization: Bearer <access_token>
+```
+
+`GET /auth/me`는 유효하지 않거나 만료된 토큰, 사용자 정보가 없는 토큰, 삭제된 사용자의 토큰에 `401`을 반환합니다. 인증 헤더가 없거나 형식이 올바르지 않은 경우 FastAPI의 HTTP Bearer 인증 오류가 반환됩니다.
 
 ### 문제·채점·이력
 
@@ -276,8 +334,14 @@ PYTHONPATH=backend python -m unittest discover -s backend/tests -v
 
 ### 사용자와 보안
 
-- 회원가입, 로그인, 세션, 역할 기반 권한 관리가 없습니다.
-- 사용자는 `user_name` 문자열로만 구분되므로 같은 이름을 입력하면 같은 기록에 접근할 수 있습니다.
+- 기본 회원가입·로그인과 JWT access token 인증을 지원하지만 비밀번호 변경·재설정, 이메일 인증, 계정 삭제, 역할 기반 권한 관리는 지원하지 않습니다.
+- 현재 JWT 인증을 필수로 검증하는 API는 `GET /auth/me`뿐입니다. 기존 학습 API는 토큰 없이도 호출할 수 있습니다.
+- 기존 학습 데이터는 요청의 `user_name` 문자열로 구분되며, 서버가 JWT의 사용자와 요청의 `user_name` 일치 여부를 검증하지 않습니다. 따라서 현재 인증 기능만으로는 다른 사용자 기록 접근을 차단할 수 없습니다.
+- 로그아웃은 Streamlit 세션의 토큰만 제거합니다. 서버 측 token 폐기 목록, refresh token, 강제 로그아웃 기능은 없습니다.
+- access token은 기본 24시간 동안 유효하며 브라우저를 새로고침하거나 Streamlit 세션이 초기화되면 클라이언트의 로그인 상태가 사라질 수 있습니다.
+- 비밀번호 정책은 최소 8자만 검사하며 복잡도, 로그인 시도 제한, 계정 잠금, 다중 인증은 지원하지 않습니다.
+- 이메일은 선택 사항이며 형식 검증 없이 문자열로 저장됩니다.
+- `JWT_SECRET_KEY`의 애플리케이션 기본값은 개발 편의를 위한 값입니다. 운영 환경에서 환경 변수로 변경하지 않으면 토큰 위조 위험이 있습니다.
 - 평가 운영 대시보드에 별도의 관리자 인증이 없습니다.
 - Docker Compose의 서비스 포트가 호스트에 노출됩니다. 외부 배포 시 방화벽, TLS, 인증, 비밀 관리가 필요합니다.
 - 기본 PostgreSQL 비밀번호는 로컬 개발 편의를 위한 값이므로 실제 배포에서는 반드시 변경해야 합니다.
@@ -332,6 +396,8 @@ cs-exam-coach/
 │  ├─ app/
 │  │  ├─ core/config.py     # 환경 변수와 모델 설정
 │  │  ├─ routers/           # FastAPI endpoint
+│  │  ├─ auth_service.py    # 비밀번호 해시와 JWT 생성·검증
+│  │  ├─ dependencies.py    # 현재 사용자 인증 의존성
 │  │  ├─ ai_service.py      # AI 생성·채점·리포트
 │  │  ├─ rag_service.py     # Chroma 인덱싱·검색·RAG
 │  │  ├─ models.py          # SQLAlchemy model
@@ -347,13 +413,14 @@ cs-exam-coach/
 
 ## 10. 기본 사용 흐름
 
-1. 사용자 이름을 입력하고 홈 대시보드에서 전체 또는 과목별 학습 상태와 오늘의 우선순위를 확인합니다.
-2. 학습 내용을 직접 입력하거나 PDF에서 텍스트를 추출합니다.
-3. 문제 유형, 난이도, 개수를 선택해 예상문제를 생성합니다.
-4. 개별 문제를 풀거나 시험지를 구성해 모의시험에 응시합니다.
-5. 채점 결과와 문항별 피드백을 확인합니다.
-6. 오답 추천, 학습 목표, 체크리스트 또는 스마트 복습 큐로 다음 학습을 계획합니다.
-7. 학습 세션을 기록하고 홈·주간 리포트·목표 대시보드에서 진행 상황을 확인합니다.
+1. 사이드바에서 사용자 계정을 만들고 로그인합니다.
+2. 홈 대시보드에서 전체 또는 과목별 학습 상태와 오늘의 우선순위를 확인합니다.
+3. 학습 내용을 직접 입력하거나 PDF에서 텍스트를 추출합니다.
+4. 문제 유형, 난이도, 개수를 선택해 예상문제를 생성합니다.
+5. 개별 문제를 풀거나 시험지를 구성해 모의시험에 응시합니다.
+6. 채점 결과와 문항별 피드백을 확인합니다.
+7. 오답 추천, 학습 목표, 체크리스트 또는 스마트 복습 큐로 다음 학습을 계획합니다.
+8. 학습 세션을 기록하고 홈·주간 리포트·목표 대시보드에서 진행 상황을 확인합니다.
 
 ## 11. 화면 예시
 

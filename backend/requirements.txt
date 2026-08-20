@@ -10,3 +10,5 @@ python-multipart==0.0.32
 chromadb==1.5.9
 tiktoken==0.13.0
 alembic==1.19.0
+passlib[bcrypt]
+python-jose[cryptography]

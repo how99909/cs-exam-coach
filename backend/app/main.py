@@ -20,12 +20,13 @@ from app.routers import (
     weekly_reports,
     goal_dashboard,
     smart_review,
-    home_dashboard
+    home_dashboard,
+    auth
 )
 
 # Base.metadata.create_all(bind=engine)
 
-APP_VERSION = "0.4.0"
+APP_VERSION = "0.4.1"
 
 app = FastAPI(
     title="CS Exam Coach API",
@@ -53,6 +54,7 @@ app.include_router(weekly_reports.router)
 app.include_router(goal_dashboard.router)
 app.include_router(smart_review.router)
 app.include_router(home_dashboard.router)
+app.include_router(auth.router)
 
 @app.get("/")
 def root():

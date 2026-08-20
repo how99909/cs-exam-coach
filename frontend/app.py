@@ -14,16 +14,93 @@ st.set_page_config(
 st.title("📚 CS Exam Coach")
 st.write("컴소 전공 시험 대비 AI 문제 생성 및 오답 복습 서비스")
 
+if "access_token" not in st.session_state:
+    st.session_state.access_token = None
+    
 if "user_name" not in st.session_state:
     st.session_state.user_name = "default_user"
-    
-user_name = st.text_input(
-    "사용자 이름", 
-    value=st.session_state.user_name,
-    help="사용자 이름은 학습 기록과 오답 복습 추천에 사용됩니다.",
+
+st.sidebar.header("사용자")
+
+auth_mode = st.sidebar.radio(
+    "인증 메뉴",
+    ["로그인", "회원가입"],
 )
 
-st.session_state.user_name = user_name.strip() or "default_user"
+if st.session_state.access_token:
+    st.sidebar.success(f"로그인됨: {st.session_state.user_name}")
+    
+    if st.sidebar.button("로그아웃"):
+        st.session_state.access_token = None
+        st.session_state.user_name = "default_user"
+        st.rerun()
+else:
+    if auth_mode == "로그인":
+        login_user_name = st.sidebar.text_input("user_name", key="login_user_name")
+        login_password = st.sidebar.text_input(
+            "password",
+            type="password",
+            key="login_password",
+        )
+        
+        if st.sidebar.button("로그인"):
+            response = requests.post(
+                f"{API_BASE_URL}/auth/login",
+                json={
+                    "user_name": login_user_name,
+                    "password": login_password,
+                },
+                timeout=30,
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                st.session_state.access_token = result["access_token"]
+                st.session_state.user_name = result["user_name"]
+                st.sidebar.success("로그인 성공")
+                st.rerun()
+            else:
+                st.sidebar.error("로그인 실패")
+                st.sidebar.write(response.text)
+                
+    else:
+        register_user_name = st.sidebar.text_input(
+            "새 user_name",
+            key="register_user_name",
+        )
+        register_email = st.sidebar.text_input(
+            "email 선택",
+            key="register_email",
+        )
+        register_password = st.sidebar.text_input(
+            "새 password",
+            type="password",
+            key="register_password",
+        )
+        
+        if st.sidebar.button("회원가입"):
+            response = requests.post(
+                f"{API_BASE_URL}/auth/register",
+                json={
+                    "user_name": register_user_name,
+                    "email": register_email if register_email else None,
+                    "password": register_password,
+                },
+                timeout=30,
+            )
+            
+            if response.status_code == 200:
+                st.sidebar.success("회원가입 성공. 이제 로그인하세요.")
+            else:
+                st.sidebar.error("회원가입 실패")
+                st.sidebar.write(response.text)
+    
+def get_auth_headers():
+    if st.session_state.access_token:
+        return {
+            "Authorization": f"Bearer {st.session_state.access_token}"
+        }
+    return {}
 
 tab_home, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22 = st.tabs(
     [
@@ -74,6 +151,7 @@ with tab_home:
         response = requests.post(
             f"{API_BASE_URL}/home-dashboard",
             json=payload,
+            headers=get_auth_headers(),
             timeout=180,
         )
         
@@ -208,6 +286,7 @@ with tab1:
                     "count": count,
                     "difficulty": difficulty,
                 },
+                headers=get_auth_headers(),
                 timeout=60,
             )
             
@@ -254,6 +333,7 @@ with tab1:
                         "user_answer": user_answer,
                         "concept": question.get("concept"),
                     },
+                    headers=get_auth_headers(),
                     timeout=60,
                 )
                 
@@ -322,6 +402,7 @@ with tab1:
                         "difficulty_match_score": difficulty_match_score,
                         "comment": comment,
                     },
+                    headers=get_auth_headers(),
                     timeout=30,
                 )
                 
@@ -400,6 +481,7 @@ with tab2:
                 f"{API_BASE_URL}/materials/extract-pdf",
                 data=data,
                 files=files,
+                headers=get_auth_headers(),
                 timeout=120,
             )
             
@@ -456,6 +538,7 @@ with tab2:
             response = requests.post(
                 f"{API_BASE_URL}/rag/index",
                 json=payload,
+                headers=get_auth_headers(),
                 timeout=180,
             )
             
@@ -508,6 +591,7 @@ with tab2:
                     "count": pdf_count,
                     "difficulty": pdf_difficulty,
                 },
+                headers=get_auth_headers(),
                 timeout=120,
             )
             
@@ -546,6 +630,7 @@ with tab3:
                     "user_name": st.session_state.user_name,
                     "subject": rag_subject,
                 },
+                headers=get_auth_headers(),
                 timeout=30,
             )
             
@@ -613,6 +698,7 @@ with tab3:
             response = requests.post(
                 f"{API_BASE_URL}/rag/ask",
                 json=payload,
+                headers=get_auth_headers(),
                 timeout=180,
             )
             
@@ -707,6 +793,7 @@ with tab3:
                     "helpfulness_score": helpfulness_score,
                     "comment": rag_feedback_comment,
                 },
+                headers=get_auth_headers(),
                 timeout=30,
             )
             
@@ -741,6 +828,7 @@ with tab4:
         response = requests.get(
             f"{API_BASE_URL}/rag/documents",
             params=params,
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -793,6 +881,7 @@ with tab4:
                                 "subject": document["subject"],
                                 "material_id": document["material_id"],
                             },
+                            headers=get_auth_headers(),
                             timeout=30,
                         )
                         
@@ -840,6 +929,7 @@ with tab5:
                     "user_name": st.session_state.user_name,
                     "subject": rag_q_subject,
                 },
+                headers=get_auth_headers(),
                 timeout=30,
             )
             
@@ -920,6 +1010,7 @@ with tab5:
         response = requests.post(
             f"{API_BASE_URL}/rag-questions/generate",
             json=payload,
+            headers=get_auth_headers(),
             timeout=180,
         )
         
@@ -983,6 +1074,7 @@ with tab6:
                     "user_name": st.session_state.user_name,
                     "subject": weak_subject,
                 },
+                headers=get_auth_headers(),
                 timeout=30,
             )
             
@@ -1073,6 +1165,7 @@ with tab6:
         response = requests.post(
             f"{API_BASE_URL}/weakness-rag-questions/generate",
             json=payload,
+            headers=get_auth_headers(),
             timeout=180,
         )
         
@@ -1144,6 +1237,7 @@ with tab7:
                 "subject": exam_subject,
                 "limit": exam_limit,
             },
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -1216,6 +1310,7 @@ with tab7:
                         "include_answers": include_answers,
                         "include_explanations": include_explanations,
                     },
+                    headers=get_auth_headers(),
                     timeout=60,
                 )
                 
@@ -1269,6 +1364,7 @@ with tab8:
                 "subject": attempt_subject,
                 "limit": attempt_limit,
             },
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -1343,6 +1439,7 @@ with tab8:
                         "title": attempt_title,
                         "answers": answer_payload,
                     },
+                    headers=get_auth_headers(),
                     timeout=240,
                 )
                 
@@ -1394,6 +1491,7 @@ with tab8:
                 "subject": attempt_subject,
                 "limit": 20,
             },
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -1446,6 +1544,7 @@ with tab9:
         response = requests.get(
             f"{API_BASE_URL}/exam-attempts/analytics",
             params=params,
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -1546,6 +1645,7 @@ with tab10:
         response = requests.post(
             f"{API_BASE_URL}/study-reports/generate",
             json=payload,
+            headers=get_auth_headers(),
             timeout=180,
         )
         
@@ -1630,6 +1730,7 @@ with tab11:
                 "target_score": target_score,
                 "exam_date": str(exam_date),
             },
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -1654,6 +1755,7 @@ with tab11:
                 "user_name": st.session_state.user_name,
                 "subject": goal_subject,
             },
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -1691,6 +1793,7 @@ with tab11:
                 params={
                     "user_name": st.session_state.user_name,
                 },
+                headers=get_auth_headers(),
                 timeout=30,
             )
             
@@ -1732,6 +1835,7 @@ with tab11:
                     "user_name": st.session_state.user_name,
                     "goal_id": selected_goal_id,
                 },
+                headers=get_auth_headers(),
                 timeout=180,
             )
             
@@ -1787,6 +1891,7 @@ with tab12:
                 "user_name": st.session_state.user_name,
                 "subject": dashboard_subject,
             },
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -1825,6 +1930,7 @@ with tab12:
                     "user_name": st.session_state.user_name,
                     "goal_id": selected_dashboard_goal_id,
                 },
+                headers=get_auth_headers(),
                 timeout=180,
             )
             
@@ -1961,6 +2067,7 @@ with tab13:
         response = requests.post(
             f"{API_BASE_URL}/smart-review/queue/save",
             json=payload,
+            headers=get_auth_headers(),
             timeout=180,
         )
         
@@ -2033,6 +2140,7 @@ with tab13:
         response = requests.get(
             f"{API_BASE_URL}/smart-review/queue/items",
             params=params,
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2099,6 +2207,7 @@ with tab13:
                         "user_name": st.session_state.user_name,
                         "is_done": new_done,
                     },
+                    headers=get_auth_headers(),
                     timeout=30,
                 )
                 
@@ -2128,6 +2237,7 @@ with tab14:
                 "user_name": st.session_state.user_name,
                 "subject": checklist_subject,
             },
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2177,6 +2287,7 @@ with tab14:
                     "goal_id": selected_checklist_goal_id,
                     "item_count": item_count,
                 },
+                headers=get_auth_headers(),
                 timeout=180,
             )
             
@@ -2202,6 +2313,7 @@ with tab14:
         response = requests.get(
             f"{API_BASE_URL}/study-checklists",
             params=params,
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2258,6 +2370,7 @@ with tab14:
                         "user_name": st.session_state.use_name,
                         "is_done": new_done,
                     },
+                    headers=get_auth_headers(),
                     timeout=30,
                 )
                 
@@ -2321,6 +2434,7 @@ with tab15:
                 "user_name": st.session_state.user_name,
                 "subject": session_subject,
             },
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2368,6 +2482,7 @@ with tab15:
         response = requests.get(
             f"{API_BASE_URL}/study-checklists",
             params=params,
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2422,6 +2537,7 @@ with tab15:
             response = requests.post(
                 f"{API_BASE_URL}/study-sessions",
                 json=payload,
+                headers=get_auth_headers(),
                 timeout=30,
             )
             
@@ -2447,6 +2563,7 @@ with tab15:
         response = requests.get(
             f"{API_BASE_URL}/study-sessions/summary",
             params=params,
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2482,6 +2599,7 @@ with tab15:
                 "subject": session_subject,
                 "limit": 20,
             },
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2540,6 +2658,7 @@ with tab16:
         response = requests.post(
             f"{API_BASE_URL}/weekly-reports/generate",
             json=payload,
+            headers=get_auth_headers(),
             timeout=180,
         )
         
@@ -2603,6 +2722,7 @@ with tab17:
         response = requests.get(
             f"{API_BASE_URL}/review/recommendations", 
             params={"user_name": st.session_state.user_name},
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2627,6 +2747,7 @@ with tab18:
         response = requests.get(
             f"{API_BASE_URL}/history/questions", 
             params={"user_name": st.session_state.user_name},
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2655,6 +2776,7 @@ with tab18:
         response = requests.get(
             f"{API_BASE_URL}/history/wrong-answers", 
             params={"user_name": st.session_state.user_name},
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2694,6 +2816,7 @@ with tab19:
                 "user_name": st.session_state.user_name,
                 "exam_date": exam_date.strftime("%Y-%m-%d"),
             },
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2739,6 +2862,7 @@ with tab20:
         response = requests.get(
             f"{API_BASE_URL}/feedback/summary", 
             params={"user_name": st.session_state.user_name},
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2765,6 +2889,7 @@ with tab21:
     if st.button("관리자 대시보드 불러오기"):
         response = requests.get(
             f"{API_BASE_URL}/feedback/admin-dashboard",
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2859,6 +2984,7 @@ with tab22:
         response = requests.get(
             f"{API_BASE_URL}/rag-feedback/summary",
             params=params,
+            headers=get_auth_headers(),
             timeout=30,
         )
         
@@ -2888,6 +3014,7 @@ with tab22:
         response = requests.get(
             f"{API_BASE_URL}/rag-feedback/recent",
             params=params,
+            headers=get_auth_headers(),
             timeout=30,
         )
         

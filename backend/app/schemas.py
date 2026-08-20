@@ -220,3 +220,20 @@ class SmartReviewQueueUpdateRequest(BaseModel):
 class HomeDashboardRequest(BaseModel):
     user_name: str = "default_user"
     subject: str | None = None
+
+
+class UserCreateRequest(BaseModel):
+    user_name: str
+    email: str | None = None
+    password: str
+    
+    
+class UserLoginRequest(BaseModel):
+    user_name: str
+    password: str
+    
+    
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user_name: str
