@@ -8,7 +8,6 @@ class MaterialCreate(BaseModel):
     
     
 class QuestionGenerateRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str
     content: str
     question_type: str = "short_answer"
@@ -27,12 +26,8 @@ class QuestionResponse(BaseModel):
 
 
 class GradeRequest(BaseModel):
-    user_name: str = "default_user"
     question_id: int
-    question_text: str
-    correct_answer: str
     user_answer: str
-    concept: str | None = None
     
     
 class GradeResponse(BaseModel):
@@ -47,7 +42,6 @@ class ReviewItem(BaseModel):
 
 
 class QuestionFeedbackCreate(BaseModel):
-    user_name: str = "default_user"
     question_id: int
     quality_score: int = Field(ge=1, le=5)
     explanation_score: int = Field(ge=1, le=5)
@@ -73,7 +67,6 @@ class RagPage(BaseModel):
     
     
 class RagIndexRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str
     material_id: int
     content: str | None = None
@@ -81,20 +74,17 @@ class RagIndexRequest(BaseModel):
     
     
 class RagAskRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str
     question: str
     top_k: int = Field(default=5, ge=1, le=50)
     material_id: int | None = None
     
 class RagDeleteRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str
     material_id: int
     
     
 class RagAnswerFeedbackCreate(BaseModel):
-    user_name: str = "default_user"
     subject: str
     material_id: int | None = None
     question: str
@@ -107,7 +97,6 @@ class RagAnswerFeedbackCreate(BaseModel):
     
     
 class RagQuestionGenerateRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str
     material_id: int | None = None
     question_type: str = "short_answer"
@@ -117,7 +106,6 @@ class RagQuestionGenerateRequest(BaseModel):
     
     
 class WeaknessRagQuestionRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str
     material_id: int | None = None
     weakness_count: int = Field(default=3, ge=1, le=20)
@@ -128,7 +116,6 @@ class WeaknessRagQuestionRequest(BaseModel):
 
 
 class ExamPaperGenerateRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str
     question_ids: list[int] = Field(min_length=1, max_length=100)
     title: str = "CS Exam Coach Practice Test"
@@ -142,20 +129,17 @@ class ExamAttemptAnswerRequest(BaseModel):
     
     
 class ExamAttemptSubmitRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str
     title: str = "Practice Exam"
     answers: list[ExamAttemptAnswerRequest] = Field(min_length=1, max_length=100)
 
 
 class StudyReportRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str | None = None
     limit: int = Field(default=20, ge=1, le=100)
     
 
 class StudyGoalCreateRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str
     title: str
     target_score: int = Field(ge=0, le=100)
@@ -163,23 +147,19 @@ class StudyGoalCreateRequest(BaseModel):
     
     
 class StudyGoalStrategyRequest(BaseModel):
-    user_name: str = "default_user"
     goal_id: int
     
     
 class StudyChecklistGenerateRequest(BaseModel):
-    user_name: str = "default_user"
     goal_id: int
     item_count: int = Field(default=5, ge=1, le=20)
     
     
 class StudyChecklistUpdateRequest(BaseModel):
-    user_name: str = "default_user"
     is_done: bool
     
     
 class StudySessionCreateRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str
     goal_id: int | None = None
     checklist_item_id: int | None = None
@@ -190,47 +170,36 @@ class StudySessionCreateRequest(BaseModel):
     
     
 class WeeklyStudyReportRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str | None = None
-    days: int = Field(default=7, ge=1, le=365)
+    days: int = Field(default=7, ge=1, le=31)
 
 
 class GoalDashboardRequest(BaseModel):
-    user_name: str = "default_user"
     goal_id: int
 
 
 class SmartReviewQueueRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str | None = None
     limit: int = Field(default=5, ge=1, le=50)
 
 
-class SmartReviewQueueSaveRequest(BaseModel):
-    user_name: str = "default_user"
-    subject: str | None = None
-    limit: int = Field(default=5, ge=1, le=50)
-    
-    
 class SmartReviewQueueUpdateRequest(BaseModel):
-    user_name: str = "default_user"
     is_done: bool
 
 
 class HomeDashboardRequest(BaseModel):
-    user_name: str = "default_user"
     subject: str | None = None
 
 
 class UserCreateRequest(BaseModel):
-    user_name: str
-    email: str | None = None
-    password: str
+    user_name: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_.-]+$")
+    email: str | None = Field(default=None, max_length=255)
+    password: str = Field(min_length=8, max_length=72)
     
     
 class UserLoginRequest(BaseModel):
-    user_name: str
-    password: str
+    user_name: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=1, max_length=72)
     
     
 class TokenResponse(BaseModel):

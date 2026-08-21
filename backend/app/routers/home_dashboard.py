@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import ai_service, models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/home-dashboard", tags=["home-dashboard"])
 
@@ -14,11 +15,13 @@ router = APIRouter(prefix="/home-dashboard", tags=["home-dashboard"])
 def get_home_dashboard(
     request: schemas.HomeDashboardRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    user_name = current_user.user_name
     since = datetime.utcnow() - timedelta(days=7)
     
     goal_query = db.query(models.StudyGoal).filter(
-        models.StudyGoal.user_name == request.user_name
+        models.StudyGoal.user_name == user_name
     )
     
     if request.subject:
@@ -44,7 +47,7 @@ def get_home_dashboard(
         goal_summary = None
         
     session_query = db.query(models.StudySession).filter(
-        models.StudySession.user_name == request.user_name
+        models.StudySession.user_name == user_name
     ).filter(
         models.StudySession.created_at >= since
     )
@@ -74,7 +77,7 @@ def get_home_dashboard(
     }
     
     attempt_query = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.user_name == request.user_name
+        models.ExamAttempt.user_name == user_name
     ).filter(
         models.ExamAttempt.created_at >= since
     )
@@ -97,7 +100,7 @@ def get_home_dashboard(
     }
     
     queue_query = db.query(models.SmartReviewQueueItem).filter(
-        models.SmartReviewQueueItem.user_name == request.user_name
+        models.SmartReviewQueueItem.user_name == user_name
     )
     
     if request.subject:
@@ -140,7 +143,7 @@ def get_home_dashboard(
     }
 
     checklist_query = db.query(models.StudyChecklistItem).filter(
-        models.StudyChecklistItem.user_name == request.user_name
+        models.StudyChecklistItem.user_name == user_name
     )
 
     if request.subject:
@@ -170,7 +173,7 @@ def get_home_dashboard(
             models.WrongAnswer.concept,
             func.count(models.WrongAnswer.id).label("wrong_count"),
         )
-        .filter(models.WrongAnswer.user_name == request.user_name)
+        .filter(models.WrongAnswer.user_name == user_name)
         .filter(models.WrongAnswer.concept.isnot(None))
         .filter(models.WrongAnswer.concept != "")
     )
@@ -215,7 +218,7 @@ def get_home_dashboard(
         )
 
     comment = ai_service.generate_home_dashboard_comment(
-        user_name=request.user_name,
+        user_name=user_name,
         subject=request.subject,
         goal_summary=goal_summary,
         session_summary=session_summary,

@@ -3,17 +3,20 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/exam-papers", tags=["exam-papers"])
 
 
 @router.get("/questions")
 def list_questions_for_exam_paper(
-    user_name: str,
     subject: str,
     limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    user_name = current_user.user_name
+    
     questions = (
         db.query(models.Question)
         .join(models.StudyMaterial, models.Question.material_id == models.StudyMaterial.id)
@@ -47,6 +50,7 @@ def list_questions_for_exam_paper(
 def generate_exam_paper(
     request: schemas.ExamPaperGenerateRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     if not request.question_ids:
         raise HTTPException(
@@ -57,7 +61,7 @@ def generate_exam_paper(
     questions = (
         db.query(models.Question)
         .join(models.StudyMaterial, models.Question.material_id == models.StudyMaterial.id)
-        .filter(models.StudyMaterial.user_name == request.user_name)
+        .filter(models.StudyMaterial.user_name == current_user.user_name)
         .filter(models.StudyMaterial.subject == request.subject)
         .filter(models.Question.id.in_(request.question_ids))
         .all()
@@ -85,7 +89,7 @@ def generate_exam_paper(
     
     paper_lines.append(f"# {request.title}")
     paper_lines.append("")
-    paper_lines.append(f"- 사용자: {request.user_name}")
+    paper_lines.append(f"- 사용자: {current_user.user_name}")
     paper_lines.append(f"- 과목: {request.subject}")
     paper_lines.append(f"- 문항 수: {len(questions)}")
     paper_lines.append("")

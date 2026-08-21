@@ -4,17 +4,18 @@ from pypdf import PdfReader
 
 from app import models
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/materials", tags=["materials"])
 
 @router.post("/extract-pdf")
 async def extract_pdf_text(
-    user_name: str = Form("default_user"),
     subject: str = Form(...),
     start_page: int | None = Form(None, ge=1),
     end_page: int | None = Form(None, ge=1),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     filename = file.filename or ""
 
@@ -78,7 +79,7 @@ async def extract_pdf_text(
             }
             
         material = models.StudyMaterial(
-            user_name=user_name,
+            user_name=current_user.user_name,
             subject=subject,
             content=full_text,
         )
@@ -89,7 +90,7 @@ async def extract_pdf_text(
         
         return {
             "success": True,
-            "user_name": user_name,
+            "user_name": current_user.user_name,
             "material_id": material.id,
             "subject": subject,
             "filename": filename,

@@ -2,9 +2,9 @@
 
 컴퓨터공학 전공 시험 대비를 위한 AI 문제 생성·채점·복습 관리 서비스입니다.
 
-- 제품 버전: **v4.1**
-- API 버전: **0.4.1**
-- 최근 주요 변경: 사용자 가입·로그인과 기본 JWT Bearer 인증 추가
+- 제품 버전: **v4.2**
+- API 버전: **0.4.2**
+- 최근 주요 변경: 전체 학습 API JWT 보호, 사용자별 데이터 격리 및 인증 흐름 안정화
 
 ## 1. 프로젝트 소개
 
@@ -20,7 +20,11 @@ CS Exam Coach는 사용자가 직접 입력하거나 PDF에서 추출한 학습 
 - bcrypt 기반 비밀번호 해시 저장 및 로그인 검증
 - 로그인 성공 시 만료 시간이 포함된 JWT access token 발급
 - Bearer token으로 현재 로그인 사용자 정보 조회
+- 공개 경로를 제외한 모든 학습·피드백 API의 JWT 인증 강제
+- 요청의 `user_name` 대신 검증된 JWT 사용자 기준으로 데이터 저장·조회
+- 문제, 자료, 목표, 체크리스트, 응시 기록 등 ID 기반 리소스의 소유권 검증
 - Streamlit 사이드바 로그인·회원가입·로그아웃과 API 인증 헤더 연동
+- 앱 진입 시 `/auth/me`로 토큰을 확인하고 만료·무효 토큰 자동 제거
 
 ### 문제 생성과 채점
 
@@ -167,7 +171,7 @@ docker compose run --rm backend alembic upgrade head
 
 ## 6. 테스트
 
-현재 회귀 테스트는 Python 표준 `unittest`로 실행합니다.
+현재 회귀 및 인증 통합 테스트는 Python 표준 `unittest`로 실행합니다.
 
 PowerShell:
 
@@ -185,6 +189,15 @@ PYTHONPATH=backend python -m unittest discover -s backend/tests -v
 ## 7. API 요약
 
 요청 필드, 허용 범위, 응답 모델의 최신 정의는 실행 중인 [Swagger UI](http://localhost:8000/docs)를 기준으로 확인하세요.
+
+### 공통 인증 및 사용자 범위
+
+- 공개 경로는 `GET /`, `POST /auth/register`, `POST /auth/login`뿐입니다.
+- 그 외 모든 경로에는 `Authorization: Bearer <access_token>` 헤더가 필요합니다.
+- 인증이 없거나 토큰이 유효하지 않거나 만료된 경우 `401 Unauthorized`를 반환합니다.
+- 학습 API는 `user_name`을 요청 본문이나 query parameter로 받지 않습니다. 서버가 JWT의 `sub` claim에서 현재 사용자를 결정합니다.
+- ID로 자료나 기록을 지정하는 API는 현재 사용자의 소유권을 확인합니다. 존재하지 않거나 다른 사용자의 리소스이면 `404 Not Found`를 반환합니다.
+- 요청 본문 검증 실패는 `422 Unprocessable Entity`, 처리할 데이터가 없거나 비즈니스 규칙을 위반한 경우에는 주로 `400` 또는 `404`를 반환합니다.
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
@@ -208,7 +221,7 @@ PYTHONPATH=backend python -m unittest discover -s backend/tests -v
 }
 ```
 
-`email`은 선택 사항이며, 비밀번호는 8자 이상이어야 합니다. `user_name`과 입력된 이메일은 각각 중복될 수 없습니다.
+`email`은 선택 사항입니다. `user_name`은 영문자, 숫자, `_`, `.`, `-`만 사용할 수 있고 최대 100자입니다. 비밀번호는 8자 이상, 72자 이하이며 UTF-8 인코딩 기준 72바이트를 초과할 수 없습니다. `user_name`과 입력된 이메일은 각각 중복될 수 없습니다.
 
 로그인 요청과 응답:
 
@@ -233,7 +246,7 @@ PYTHONPATH=backend python -m unittest discover -s backend/tests -v
 Authorization: Bearer <access_token>
 ```
 
-`GET /auth/me`는 유효하지 않거나 만료된 토큰, 사용자 정보가 없는 토큰, 삭제된 사용자의 토큰에 `401`을 반환합니다. 인증 헤더가 없거나 형식이 올바르지 않은 경우 FastAPI의 HTTP Bearer 인증 오류가 반환됩니다.
+`GET /auth/me`를 포함한 보호 경로는 유효하지 않거나 만료된 토큰, 사용자 정보가 없는 토큰, 삭제된 사용자의 토큰에 `401`과 `WWW-Authenticate: Bearer` 헤더를 반환합니다.
 
 ### 문제·채점·이력
 
@@ -247,17 +260,40 @@ Authorization: Bearer <access_token>
 | GET | `/review/study-plan` | 시험일까지의 복습 계획 생성 |
 | POST | `/materials/extract-pdf` | PDF 페이지 범위 텍스트 추출 및 저장 |
 
+문제 생성 요청 예시:
+
+```json
+{
+  "subject": "운영체제",
+  "content": "프로세스와 스레드의 차이...",
+  "question_type": "short_answer",
+  "count": 5,
+  "difficulty": "medium"
+}
+```
+
+단일 답안 채점은 클라이언트가 정답이나 문제 본문을 보내지 않고, 현재 사용자 소유의 `question_id`와 답안만 전송합니다.
+
+```json
+{
+  "question_id": 12,
+  "user_answer": "프로세스는 독립 주소 공간을 사용하고..."
+}
+```
+
+`POST /materials/extract-pdf`는 JSON이 아닌 `multipart/form-data` 요청입니다. `file`과 `subject`는 필수이며 `start_page`, `end_page`는 선택 사항입니다.
+
 ### 문제 및 RAG 평가
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | POST | `/feedback/question` | 생성 문제 평가 저장 |
-| GET | `/feedback/question/{question_id}` | 특정 문제 평가 요약 |
-| GET | `/feedback/summary` | 전체 문제 평가 요약 |
-| GET | `/feedback/low-score-questions` | 품질 점수가 낮은 문제 조회 |
-| GET | `/feedback/low-exam-relevance` | 시험 적합도가 낮은 문제 조회 |
-| GET | `/feedback/recent-comments` | 최근 평가 의견 조회 |
-| GET | `/feedback/admin-dashboard` | 문제 평가 운영 대시보드 |
+| GET | `/feedback/question/{question_id}` | 현재 사용자의 특정 문제 평가 요약 |
+| GET | `/feedback/summary` | 현재 사용자의 문제 평가 요약 |
+| GET | `/feedback/low-score-questions` | 현재 사용자의 품질 점수가 낮은 문제 조회 |
+| GET | `/feedback/low-exam-relevance` | 현재 사용자의 시험 적합도가 낮은 문제 조회 |
+| GET | `/feedback/recent-comments` | 현재 사용자의 최근 평가 의견 조회 |
+| GET | `/feedback/admin-dashboard` | 현재 사용자 범위의 문제 평가 운영 대시보드 |
 | POST | `/rag-feedback/answer` | RAG 답변 평가 저장 |
 | GET | `/rag-feedback/summary` | RAG 평가 요약 |
 | GET | `/rag-feedback/recent` | 최근 RAG 평가 조회 |
@@ -272,6 +308,20 @@ Authorization: Bearer <access_token>
 | DELETE | `/rag/documents` | 지정 문서의 Chroma chunk 삭제 |
 | POST | `/rag-questions/generate` | 문서 기반 예상문제 생성 |
 | POST | `/weakness-rag-questions/generate` | 오답 취약 개념과 문서 기반 문제 생성 |
+
+문서 인덱싱 요청 예시:
+
+```json
+{
+  "subject": "데이터베이스",
+  "material_id": 3,
+  "pages": [
+    {"page": 1, "text": "트랜잭션의 ACID 특성..."}
+  ]
+}
+```
+
+`material_id`는 먼저 PDF 추출 등으로 PostgreSQL에 저장된 현재 사용자 소유 자료여야 하며, 요청의 `subject`와도 일치해야 합니다. `pages` 대신 `content` 문자열을 전달할 수도 있습니다.
 
 ### 시험과 분석
 
@@ -306,18 +356,17 @@ Authorization: Bearer <access_token>
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| POST | `/home-dashboard` | 사용자·과목별 홈 학습 현황과 AI 학습 코멘트 생성 |
+| POST | `/home-dashboard` | JWT 사용자·과목별 홈 학습 현황과 AI 학습 코멘트 생성 |
 
 요청 본문:
 
 ```json
 {
-  "user_name": "default_user",
   "subject": "알고리즘"
 }
 ```
 
-- `user_name`은 선택 필드이며 기본값은 `default_user`입니다.
+- 사용자는 Bearer token에서 결정되므로 `user_name`을 전송하지 않습니다.
 - `subject`는 선택 필드입니다. 생략하거나 `null`이면 전체 과목을 집계합니다.
 - 응답에는 가장 가까운 미래 목표(`goal_summary`), 최근 7일 학습 세션(`session_summary`)과 응시 기록(`attempt_summary`), 전체 복습 큐(`review_queue_summary`)와 체크리스트(`checklist_summary`), 누적 오답 기준 취약 개념 Top 5(`weak_concepts`), AI 코멘트(`comment`)가 포함됩니다.
 - 지정한 사용자·과목 범위에 목표, 학습 세션, 응시, 복습 큐, 체크리스트 또는 취약 개념이 하나도 없으면 `404`를 반환합니다.
@@ -335,14 +384,14 @@ Authorization: Bearer <access_token>
 ### 사용자와 보안
 
 - 기본 회원가입·로그인과 JWT access token 인증을 지원하지만 비밀번호 변경·재설정, 이메일 인증, 계정 삭제, 역할 기반 권한 관리는 지원하지 않습니다.
-- 현재 JWT 인증을 필수로 검증하는 API는 `GET /auth/me`뿐입니다. 기존 학습 API는 토큰 없이도 호출할 수 있습니다.
-- 기존 학습 데이터는 요청의 `user_name` 문자열로 구분되며, 서버가 JWT의 사용자와 요청의 `user_name` 일치 여부를 검증하지 않습니다. 따라서 현재 인증 기능만으로는 다른 사용자 기록 접근을 차단할 수 없습니다.
+- 공개 경로를 제외한 모든 학습·피드백 API는 JWT를 검증하며, JWT 사용자를 기준으로 데이터를 격리합니다.
+- ID 기반 조회·수정·생성 작업은 현재 사용자의 자료인지 확인하지만, 별도의 조직·공유·관리자 권한 모델은 없습니다.
 - 로그아웃은 Streamlit 세션의 토큰만 제거합니다. 서버 측 token 폐기 목록, refresh token, 강제 로그아웃 기능은 없습니다.
-- access token은 기본 24시간 동안 유효하며 브라우저를 새로고침하거나 Streamlit 세션이 초기화되면 클라이언트의 로그인 상태가 사라질 수 있습니다.
-- 비밀번호 정책은 최소 8자만 검사하며 복잡도, 로그인 시도 제한, 계정 잠금, 다중 인증은 지원하지 않습니다.
+- access token은 기본 24시간 동안 유효하며 Streamlit 세션이 초기화되면 클라이언트의 로그인 상태가 사라질 수 있습니다. 만료된 토큰은 앱 진입 시 제거됩니다.
+- 비밀번호는 8~72자 및 bcrypt의 72바이트 제한을 검사하지만 복잡도, 유출 비밀번호 검사, 로그인 시도 제한, 계정 잠금, 다중 인증은 지원하지 않습니다.
 - 이메일은 선택 사항이며 형식 검증 없이 문자열로 저장됩니다.
 - `JWT_SECRET_KEY`의 애플리케이션 기본값은 개발 편의를 위한 값입니다. 운영 환경에서 환경 변수로 변경하지 않으면 토큰 위조 위험이 있습니다.
-- 평가 운영 대시보드에 별도의 관리자 인증이 없습니다.
+- 평가 운영 대시보드는 로그인 사용자 본인의 평가만 집계하며 별도의 관리자 역할이나 전체 사용자 통합 화면은 없습니다.
 - Docker Compose의 서비스 포트가 호스트에 노출됩니다. 외부 배포 시 방화벽, TLS, 인증, 비밀 관리가 필요합니다.
 - 기본 PostgreSQL 비밀번호는 로컬 개발 편의를 위한 값이므로 실제 배포에서는 반드시 변경해야 합니다.
 

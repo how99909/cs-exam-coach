@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app import ai_service, models, schemas
 from app.database import get_db
-from app.routers.study_goals import get_study_goal_status
+from app.routers.study_goals import _get_study_goal_status
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/study-checklists", tags=["study-checklists"])
 
@@ -14,10 +15,11 @@ router = APIRouter(prefix="/study-checklists", tags=["study-checklists"])
 def generate_study_checklist(
     request: schemas.StudyChecklistGenerateRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    status_result = get_study_goal_status(
+    status_result = _get_study_goal_status(
         goal_id=request.goal_id,
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         db=db,
     )
     
@@ -26,7 +28,7 @@ def generate_study_checklist(
     weak_concepts = status_result["weak_concepts"]
     
     generated_items = ai_service.generate_study_checklist_items(
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         goal=goal,
         current_status=current_status,
         weak_concepts=weak_concepts,
@@ -37,7 +39,7 @@ def generate_study_checklist(
     
     for item in generated_items:
         checklist_item = models.StudyChecklistItem(
-            user_name=request.user_name,
+            user_name=current_user.user_name,
             goal_id=request.goal_id,
             subject=goal["subject"],
             title=item.get("title", ""),
@@ -74,13 +76,13 @@ def generate_study_checklist(
 
 @router.get("")
 def list_study_checklist_items(
-    user_name: str,
     goal_id: int | None = None,
     subject: str | None = None,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.StudyChecklistItem).filter(
-        models.StudyChecklistItem.user_name == user_name
+        models.StudyChecklistItem.user_name == current_user.user_name
     )
     
     if goal_id is not None:
@@ -128,12 +130,13 @@ def list_study_checklist_items(
 def update_study_checklist_item(
     item_id: int,
     request: schemas.StudyChecklistUpdateRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     item = (
         db.query(models.StudyChecklistItem)
         .filter(models.StudyChecklistItem.id == item_id)
-        .filter(models.StudyChecklistItem.user_name == request.user_name)
+        .filter(models.StudyChecklistItem.user_name == current_user.user_name)
         .first()
     )
     

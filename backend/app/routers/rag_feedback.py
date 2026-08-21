@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app import crud_rag_feedback, schemas
+from app import crud_rag_feedback, schemas, models
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/rag-feedback", tags=["rag-feedback"])
 
@@ -18,15 +19,27 @@ def validate_score(score: int, field_name: str):
 @router.post("/answer")
 def create_rag_answer_feedback(
     request: schemas.RagAnswerFeedbackCreate, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    validate_score(request.accuracy_score, "accuracy_score"),
-    validate_score(request.grounding_score, "grounding_score"),
-    validate_score(request.source_relevance_score, "source_relevance_score"),
-    validate_score(request.helpfulness_score, "helpfulness_score"),
+    if request.material_id is not None:
+        material = (
+            db.query(models.StudyMaterial)
+            .filter(models.StudyMaterial.id == request.material_id)
+            .filter(models.StudyMaterial.user_name == current_user.user_name)
+            .first()
+        )
+        if material is None:
+            raise HTTPException(status_code=404, detail="학습 자료를 찾을 수 없습니다.")
+
+    validate_score(request.accuracy_score, "accuracy_score")
+    validate_score(request.grounding_score, "grounding_score")
+    validate_score(request.source_relevance_score, "source_relevance_score")
+    validate_score(request.helpfulness_score, "helpfulness_score")
     
     feedback = crud_rag_feedback.create_rag_feedback(
         db=db,
+        user_name=current_user.user_name,
         request=request,
     )
     
@@ -39,10 +52,12 @@ def create_rag_answer_feedback(
     
 @router.get("/summary")
 def get_rag_feedback_summary(
-    user_name: str | None = None,
     subject: str | None = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    user_name = current_user.user_name
+    
     result = crud_rag_feedback.get_rag_feedback_summary(
         db=db,
         user_name=user_name,
@@ -69,11 +84,13 @@ def get_rag_feedback_summary(
     
 @router.get("/recent")
 def get_recent_rag_feedback(
-    user_name: str | None = None,
     subject: str | None = None,
     limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    user_name = current_user.user_name
+    
     feedback_items = crud_rag_feedback.get_recent_rag_feedback(
         db=db,
         user_name=user_name,

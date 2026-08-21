@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import auth_service, models, schemas
@@ -13,12 +14,12 @@ def register(
     request: schemas.UserCreateRequest,
     db: Session = Depends(get_db),
 ):
-    if len(request.password) < 8:
+    if len(request.password.encode("utf-8")) > 72:
         raise HTTPException(
             status_code=400,
-            detail="비밀번호는 8자 이상이어야 합니다.",
+            detail="비밀번호는 UTF-8 기준 72바이트 이하여야 합니다.",
         )
-        
+
     existing_user = (
         db.query(models.User)
         .filter(models.User.user_name == request.user_name)
@@ -51,7 +52,14 @@ def register(
     )
     
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="이미 사용 중인 user_name 또는 email입니다.",
+        )
     db.refresh(user)
     
     return {
@@ -66,7 +74,7 @@ def register(
     }
     
     
-@router.post("/login")
+@router.post("/login", response_model=schemas.TokenResponse)
 def login(
     request: schemas.UserLoginRequest,
     db: Session = Depends(get_db),

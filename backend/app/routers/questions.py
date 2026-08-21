@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas, ai_service
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 
@@ -10,6 +11,7 @@ router = APIRouter(prefix="/questions", tags=["questions"])
 def generate_questions(
     request: schemas.QuestionGenerateRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     generated_questions = ai_service.generate_questions(
         subject=request.subject,
@@ -21,7 +23,7 @@ def generate_questions(
     
     try:
         material = models.StudyMaterial(
-            user_name=request.user_name,
+            user_name=current_user.user_name,
             subject=request.subject,
             content=request.content,
         )
@@ -66,7 +68,7 @@ def generate_questions(
     ]
 
     return {
-        "user_name": request.user_name,
+        "user_name": current_user.user_name,
         "material_id": material.id,
         "questions": saved_questions,
     }

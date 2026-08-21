@@ -5,15 +5,18 @@ from datetime import datetime, date
 
 from app import models
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/review", tags=["review"])
 
 
 @router.get("/recommendations")
 def get_review_recommendations(
-    user_name: str = "default_user",
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    user_name = current_user.user_name
+    
     results = (
         db.query(
             models.WrongAnswer.concept,
@@ -28,7 +31,6 @@ def get_review_recommendations(
     
     return [
         {
-            "user_name": user_name,
             "concept": concept or "미분류",
             "wrong_count": wrong_count,
             "recommendation": f"{concept or '미분류'} 개념을 우선 복습하세요."
@@ -38,10 +40,12 @@ def get_review_recommendations(
     
 @router.get("/study-plan")
 def get_study_plan(
-    user_name: str = "default_user",
     exam_date: str | None = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    user_name = current_user.user_name
+    
     if exam_date is None:
         return {
             "success": False,

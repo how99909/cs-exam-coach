@@ -8,6 +8,7 @@ from app.database import get_db
 from app.main import APP_VERSION
 from app.routers import exam_attempts
 from app.schemas import QuestionGenerateRequest, StudySessionCreateRequest
+from app.dependencies import get_current_user
 
 
 class EmptyQuery:
@@ -33,11 +34,23 @@ def empty_database_override():
     yield EmptyDatabase()
 
 
+class FakeUser:
+    id = 1
+    user_name = "tester"
+    email = "tester@example.com"
+    
+    
+def current_user_override():
+    return FakeUser()
+
 class ApiRegressionTests(unittest.TestCase):
     def setUp(self):
         app = FastAPI(version=APP_VERSION)
         app.include_router(exam_attempts.router)
         app.dependency_overrides[get_db] = empty_database_override
+        app.dependency_overrides[get_current_user] = (
+            current_user_override
+        )
         self.client = TestClient(app)
 
     def test_analytics_is_not_captured_as_attempt_id(self):

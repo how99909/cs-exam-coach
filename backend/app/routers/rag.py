@@ -1,12 +1,29 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 
-from app import rag_service, schemas
+from app import rag_service, schemas, models
+from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/rag", tags=["rag"])
 
 
 @router.post("/index")
-def index_document(request: schemas.RagIndexRequest):
+def index_document(
+    request: schemas.RagIndexRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    material = (
+        db.query(models.StudyMaterial)
+        .filter(models.StudyMaterial.id == request.material_id)
+        .filter(models.StudyMaterial.user_name == current_user.user_name)
+        .filter(models.StudyMaterial.subject == request.subject)
+        .first()
+    )
+    if material is None:
+        raise HTTPException(status_code=404, detail="학습 자료를 찾을 수 없습니다.")
+
     if request.pages:
         pages = [
             {
@@ -17,14 +34,14 @@ def index_document(request: schemas.RagIndexRequest):
         ]
         
         result = rag_service.index_document_pages(
-            user_name=request.user_name,
+            user_name=current_user.user_name,
             subject=request.subject,
             material_id=request.material_id,
             pages=pages,
         )
     elif request.content:
         result =  rag_service.index_document(
-            user_name=request.user_name,
+            user_name=current_user.user_name,
             subject=request.subject,
             material_id=request.material_id,
             content=request.content,
@@ -45,9 +62,12 @@ def index_document(request: schemas.RagIndexRequest):
     
     
 @router.post("/ask")
-def ask_document(request: schemas.RagAskRequest):
+def ask_document(
+    request: schemas.RagAskRequest,
+    current_user: models.User = Depends(get_current_user),
+):
     result =  rag_service.answer_with_context(
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         subject=request.subject,
         question=request.question,
         top_k=request.top_k,
@@ -65,19 +85,22 @@ def ask_document(request: schemas.RagAskRequest):
     
 @router.get("/documents")
 def list_documents(
-    user_name: str | None = None,
     subject: str | None = None,
+    current_user: models.User = Depends(get_current_user),
 ):
     return rag_service.list_indexed_documents(
-        user_name=user_name,
+        user_name=current_user.user_name,
         subject=subject,
     )
     
     
 @router.delete("/documents")
-def delete_document(request: schemas.RagDeleteRequest):
+def delete_document(
+    request: schemas.RagDeleteRequest,
+    current_user: models.User = Depends(get_current_user),
+):
     result = rag_service.delete_indexed_document(
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         subject=request.subject,
         material_id=request.material_id,
     )

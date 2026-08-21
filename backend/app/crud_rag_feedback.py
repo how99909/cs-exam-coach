@@ -6,10 +6,11 @@ from app import models, schemas
 
 def create_rag_feedback(
     db: Session,
+    user_name: str,
     request: schemas.RagAnswerFeedbackCreate,
 ) -> models.RagAnswerFeedback:
     feedback = models.RagAnswerFeedback(
-        user_name = request.user_name,
+        user_name=user_name,
         subject=request.subject,
         material_id=request.material_id,
         question=request.question,

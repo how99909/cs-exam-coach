@@ -4,6 +4,7 @@ from sqlalchemy import func
 
 from app import ai_service, models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/exam-attempts", tags=["exam-attempts"])
 
@@ -12,7 +13,10 @@ router = APIRouter(prefix="/exam-attempts", tags=["exam-attempts"])
 def submit_exam_attempt(
     request: schemas.ExamAttemptSubmitRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ): 
+    user_name = current_user.user_name
+    
     if not request.answers:
         raise HTTPException(
             status_code=400,
@@ -30,7 +34,7 @@ def submit_exam_attempt(
     questions = (
         db.query(models.Question)
         .join(models.StudyMaterial, models.Question.material_id == models.StudyMaterial.id)
-        .filter(models.StudyMaterial.user_name == request.user_name)
+        .filter(models.StudyMaterial.user_name == user_name)
         .filter(models.StudyMaterial.subject == request.subject)
         .filter(models.Question.id.in_(question_ids))
         .all()
@@ -81,7 +85,7 @@ def submit_exam_attempt(
     
     try:
         attempt = models.ExamAttempt(
-            user_name=request.user_name,
+            user_name=user_name,
             subject=request.subject,
             title=request.title,
             total_questions=len(request.answers),
@@ -106,7 +110,7 @@ def submit_exam_attempt(
             if not is_correct:
                 db.add(
                     models.WrongAnswer(
-                        user_name=request.user_name,
+                        user_name=user_name,
                         question_id=question.id,
                         user_answer=answer_item.user_answer,
                         correct_answer=question.answer,
@@ -136,13 +140,13 @@ def submit_exam_attempt(
     
 @router.get("/history")
 def get_exam_attempt_history(
-    user_name: str,
     subject: str | None = None,
     limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.user_name == user_name
+        models.ExamAttempt.user_name == current_user.user_name
     )
     
     if subject:
@@ -175,13 +179,13 @@ def get_exam_attempt_history(
 @router.get("/{attempt_id:int}")
 def get_exam_attempt_detail(
     attempt_id: int,
-    user_name: str,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     attempt = (
         db.query(models.ExamAttempt)
         .filter(models.ExamAttempt.id == attempt_id)
-        .filter(models.ExamAttempt.user_name == user_name)
+        .filter(models.ExamAttempt.user_name == current_user.user_name)
         .first()
     )
     
@@ -226,13 +230,13 @@ def get_exam_attempt_detail(
     
 @router.get("/analytics")
 def get_exam_attempt_analytics(
-    user_name: str,
     subject: str | None = None,
     limit: int = Query(default=20, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     attempt_query = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.user_name == user_name
+        models.ExamAttempt.user_name == current_user.user_name
     )
     
     if subject:
@@ -313,7 +317,7 @@ def get_exam_attempt_analytics(
             func.max(models.ExamAttempt.score).label("max_score"),
             func.min(models.ExamAttempt.score).label("min_score"),
         )
-        .filter(models.ExamAttempt.user_name == user_name)
+        .filter(models.ExamAttempt.user_name == current_user.user_name)
         .group_by(models.ExamAttempt.subject)
         .all()
     )

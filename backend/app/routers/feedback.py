@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app import models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
 
@@ -20,8 +21,22 @@ def validate_score(score: int, field_name: str):
 @router.post("/question")
 def create_question_feedback(
     request: schemas.QuestionFeedbackCreate, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    question = (
+        db.query(models.Question)
+        .join(
+            models.StudyMaterial,
+            models.Question.material_id == models.StudyMaterial.id,
+        )
+        .filter(models.Question.id == request.question_id)
+        .filter(models.StudyMaterial.user_name == current_user.user_name)
+        .first()
+    )
+    if question is None:
+        raise HTTPException(status_code=404, detail="문제를 찾을 수 없습니다.")
+
     validations = [
         validate_score(request.quality_score, "quality_score"),
         validate_score(request.explanation_score, "explanation_score"),
@@ -34,7 +49,7 @@ def create_question_feedback(
             return validation
         
     feedback = models.QuestionFeedback(
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         question_id=request.question_id,
         quality_score=request.quality_score,
         explanation_score=request.explanation_score,
@@ -57,7 +72,8 @@ def create_question_feedback(
 @router.get("/question/{question_id}")
 def get_question_feedback_summary(
     question_id: int, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     result = (
         db.query(
@@ -68,12 +84,14 @@ def get_question_feedback_summary(
             func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score"),
         )
         .filter(models.QuestionFeedback.question_id == question_id)
+        .filter(models.QuestionFeedback.user_name == current_user.user_name)
         .first()
     )
     
     comments = (
         db.query(models.QuestionFeedback.comment)
         .filter(models.QuestionFeedback.question_id == question_id)
+        .filter(models.QuestionFeedback.user_name == current_user.user_name)
         .filter(models.QuestionFeedback.comment.isnot(None))
         .order_by(models.QuestionFeedback.created_at.desc())
         .limit(5)
@@ -100,9 +118,11 @@ def get_question_feedback_summary(
     
 @router.get("/summary")
 def get_feedback_summary(
-    user_name: str | None = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    user_name = current_user.user_name
+    
     query = db.query(
         func.count(models.QuestionFeedback.id).label("feedback_count"),            
         func.avg(models.QuestionFeedback.quality_score).label("avg_quality_score"),
@@ -134,7 +154,8 @@ def get_feedback_summary(
 @router.get("/low-score-questions")
 def get_low_score_questions(
     threshold: float = 3.0,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     results = (
         db.query(
@@ -145,6 +166,7 @@ def get_low_score_questions(
             func.avg(models.QuestionFeedback.exam_relevance_score).label("avg_exam_relevance_score"),
             func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score"),
         )
+        .filter(models.QuestionFeedback.user_name == current_user.user_name)
         .group_by(models.QuestionFeedback.question_id)
         .having(func.avg(models.QuestionFeedback.quality_score) <= threshold)
         .order_by(func.avg(models.QuestionFeedback.quality_score).asc())
@@ -168,7 +190,8 @@ def get_low_score_questions(
 @router.get("/low-exam-relevance")
 def get_low_exam_relevance_questions(
     threshold: float = 3.0,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     results = (
         db.query(
@@ -179,6 +202,7 @@ def get_low_exam_relevance_questions(
             func.avg(models.QuestionFeedback.exam_relevance_score).label("avg_exam_relevance_score"),
             func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score"),
         )
+        .filter(models.QuestionFeedback.user_name == current_user.user_name)
         .group_by(models.QuestionFeedback.question_id)
         .having(func.avg(models.QuestionFeedback.exam_relevance_score) <= threshold)
         .order_by(func.avg(models.QuestionFeedback.exam_relevance_score).asc())
@@ -202,10 +226,12 @@ def get_low_exam_relevance_questions(
 @router.get("/recent-comments")
 def get_recent_feedback_comments(
     limit: int = Query(default=10, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     comments = (
         db.query(models.QuestionFeedback)
+        .filter(models.QuestionFeedback.user_name == current_user.user_name)
         .filter(models.QuestionFeedback.comment.isnot(None))
         .filter(models.QuestionFeedback.comment != "")
         .order_by(models.QuestionFeedback.created_at.desc())
@@ -232,6 +258,7 @@ def get_recent_feedback_comments(
 @router.get("/admin-dashboard")
 def get_admin_feedback_dashboard(
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     summary_result = (
         db.query(
@@ -241,6 +268,7 @@ def get_admin_feedback_dashboard(
             func.avg(models.QuestionFeedback.exam_relevance_score).label("avg_exam_relevance_score"),
             func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score")
         )
+        .filter(models.QuestionFeedback.user_name == current_user.user_name)
         .first()
     )
     
@@ -254,9 +282,15 @@ def get_admin_feedback_dashboard(
             "recent_comments": [],
         }
         
-    low_score_questions = get_low_score_questions(db=db)
-    low_exam_relevance_questions = get_low_exam_relevance_questions(db=db)
-    recent_comments = get_recent_feedback_comments(db=db)
+    low_score_questions = get_low_score_questions(db=db, current_user=current_user)
+    low_exam_relevance_questions = get_low_exam_relevance_questions(
+        db=db,
+        current_user=current_user,
+    )
+    recent_comments = get_recent_feedback_comments(
+        db=db,
+        current_user=current_user,
+    )
     
     return {
         "feedback_count": summary_result.feedback_count,

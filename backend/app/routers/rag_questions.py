@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app import ai_service, models, rag_service, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/rag-questions", tags=["rag-questions"])
 
@@ -11,9 +12,10 @@ router = APIRouter(prefix="/rag-questions", tags=["rag-questions"])
 def generate_rag_based_questions(
     request: schemas.RagQuestionGenerateRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     chunks = rag_service.get_document_chunks_for_question_generation(
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         subject=request.subject,
         material_id=request.material_id,
         limit=request.top_k,

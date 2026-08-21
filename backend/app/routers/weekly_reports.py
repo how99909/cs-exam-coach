@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import ai_service, models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/weekly-reports", tags=["weekly-reports"])
 
@@ -14,8 +15,9 @@ router = APIRouter(prefix="/weekly-reports", tags=["weekly-reports"])
 def generate_weekly_report(
     request: schemas.WeeklyStudyReportRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    if request.days <= 0 or request > 31:
+    if request.days > 31:
         raise HTTPException(
             status_code=400,
             detail="days는 1 이상 31 이하이어야 합니다.",
@@ -25,7 +27,7 @@ def generate_weekly_report(
     start_at = end_at - timedelta(days=request.days)
     
     session_query = db.query(models.StudySession).filter(
-        models.StudySession.user_name == request.user_name
+        models.StudySession.user_name == current_user.user_name
     ).filter(
         models.StudySession.created_at >= start_at
     )
@@ -60,7 +62,7 @@ def generate_weekly_report(
     }
     
     attempt_query = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.user_name == request.user_name
+        models.ExamAttempt.user_name == current_user.user_name
     ).filter(
         models.ExamAttempt.created_at >= start_at
     )
@@ -137,7 +139,7 @@ def generate_weekly_report(
         ]
         
     checklist_query = db.query(models.StudyChecklistItem).filter(
-        models.StudyChecklistItem.user_name == request.user_name
+        models.StudyChecklistItem.user_name == current_user.user_name
     )
     
     if request.subject:
@@ -177,7 +179,7 @@ def generate_weekly_report(
         )
         
     report = ai_service.generate_weekly_study_report(
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         subject=request.subject,
         period_summary=period_summary,
         session_summary=session_summary,

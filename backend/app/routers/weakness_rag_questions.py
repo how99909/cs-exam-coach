@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app import ai_service, models, rag_service, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/weakness-rag-questions",
@@ -14,13 +15,14 @@ router = APIRouter(
 def generate_weakness_rag_questions(
     request: schemas.WeaknessRagQuestionRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     weakness_rows = (
         db.query(
             models.WrongAnswer.concept,
             func.count(models.WrongAnswer.id).label("wrong_count"),
         )
-        .filter(models.WrongAnswer.user_name == request.user_name)
+        .filter(models.WrongAnswer.user_name == current_user.user_name)
         .filter(models.WrongAnswer.concept.isnot(None))
         .filter(models.WrongAnswer.concept != "")
         .group_by(models.WrongAnswer.concept)
@@ -42,7 +44,7 @@ def generate_weakness_rag_questions(
     
     for concept in weakness_concepts:
         chunks = rag_service.retrieve_chunks_by_concept(
-            user_name=request.user_name,
+            user_name=current_user.user_name,
             subject=request.subject,
             concept=concept,
             material_id=request.material_id,

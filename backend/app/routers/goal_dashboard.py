@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import ai_service, models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/goal-dashboard", tags=["goal-dashboard"])
 
@@ -14,11 +15,12 @@ router = APIRouter(prefix="/goal-dashboard", tags=["goal-dashboard"])
 def get_goal_dashboard(
     request: schemas.GoalDashboardRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     goal = (
         db.query(models.StudyGoal)
         .filter(models.StudyGoal.id == request.goal_id)
-        .filter(models.StudyGoal.user_name == request.user_name)
+        .filter(models.StudyGoal.user_name == current_user.user_name)
         .first()
     )
     
@@ -32,7 +34,7 @@ def get_goal_dashboard(
     
     checklist_items = (
         db.query(models.StudyChecklistItem)
-        .filter(models.StudyChecklistItem.user_name == request.user_name)
+        .filter(models.StudyChecklistItem.user_name == current_user.user_name)
         .filter(models.StudyChecklistItem.goal_id == goal.id)
         .all()
     )
@@ -54,7 +56,7 @@ def get_goal_dashboard(
     
     sessions = (
         db.query(models.StudySession)
-        .filter(models.StudySession.user_name == request.user_name)
+        .filter(models.StudySession.user_name == current_user.user_name)
         .filter(models.StudySession.goal_id == goal.id)
         .order_by(models.StudySession.created_at.desc())
         .all()
@@ -95,7 +97,7 @@ def get_goal_dashboard(
     
     attempts = (
         db.query(models.ExamAttempt)
-        .filter(models.ExamAttempt.user_name == request.user_name)
+        .filter(models.ExamAttempt.user_name == current_user.user_name)
         .filter(models.ExamAttempt.subject == goal.subject)
         .order_by(models.ExamAttempt.created_at.desc())
         .limit(10)
@@ -179,7 +181,7 @@ def get_goal_dashboard(
     }
     
     comment = ai_service.generate_goal_dashboard_comment(
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         gpal=goal_data,
         checklist_summary=checklist_summary,
         session_summary=session_summary,

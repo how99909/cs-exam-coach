@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/study-sessions", tags=["study-sessions"])
 
@@ -12,7 +13,10 @@ router = APIRouter(prefix="/study-sessions", tags=["study-sessions"])
 def create_study_session(
     request: schemas.StudySessionCreateRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    user_name = current_user.user_name
+    
     if request.duration_minutes <= 0:
         raise HTTPException(
             status_code=400,
@@ -31,7 +35,7 @@ def create_study_session(
         goal = (
             db.query(models.StudyGoal)
             .filter(models.StudyGoal.id == request.goal_id)
-            .filter(models.StudyGoal.user_name == request.user_name)
+            .filter(models.StudyGoal.user_name == user_name)
             .first()
         )
         
@@ -45,7 +49,7 @@ def create_study_session(
         checklist_item = (
             db.query(models.StudyChecklistItem)
             .filter(models.StudyChecklistItem.id == request.checklist_item_id)
-            .filter(models.StudyChecklistItem.user_name == request.user_name)
+            .filter(models.StudyChecklistItem.user_name == user_name)
             .first()
         )
         
@@ -56,7 +60,7 @@ def create_study_session(
             )
             
     session = models.StudySession(
-        user_name=request.user_name,
+        user_name=user_name,
         subject=request.subject,
         goal_id=request.goal_id,
         checklist_item_id=request.checklist_item_id,
@@ -90,14 +94,14 @@ def create_study_session(
     
 @router.get("")
 def list_study_sessions(
-    user_name: str,
     subject: str | None = None,
     goal_id: int | None = None,
     limit: int = Query(default=30, ge=1, le=100),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.StudySession).filter(
-        models.StudySession.user_name == user_name
+        models.StudySession.user_name == current_user.user_name
     )
     
     if subject:
@@ -134,12 +138,12 @@ def list_study_sessions(
     
 @router.get("/summary")
 def get_study_session_summary(
-    user_name: str,
     subject: str | None = None,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.StudySession).filter(
-        models.StudySession.user_name == user_name
+        models.StudySession.user_name == current_user.user_name
     )
     
     if subject:
@@ -169,7 +173,7 @@ def get_study_session_summary(
             func.sum(models.StudySession.duration_minutes).label("total_minutes"),
             func.avg(models.StudySession.focus_score).label("avg_focus_score"),
         )
-        .filter(models.StudySession.user_name == user_name)
+        .filter(models.StudySession.user_name == current_user.user_name)
         .group_by(models.StudySession.subject)
         .all()
     )

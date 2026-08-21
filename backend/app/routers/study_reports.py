@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app import ai_service, models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/study-reports", tags=["study-reports"])
 
@@ -12,9 +13,10 @@ router = APIRouter(prefix="/study-reports", tags=["study-reports"])
 def generate_personal_study_report(
     request: schemas.StudyReportRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     attempt_query = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.user_name == request.user_name
+        models.ExamAttempt.user_name == current_user.user_name
     )
     
     if request.subject:
@@ -92,7 +94,7 @@ def generate_personal_study_report(
     ]
     
     report = ai_service.generate_study_report(
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         subject=request.subject,
         attempt_summary=attempt_summary,
         weak_concepts=weak_concepts,

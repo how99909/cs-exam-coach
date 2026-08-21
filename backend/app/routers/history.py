@@ -3,14 +3,15 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/history", tags=["history"])
 
 
 @router.get("/questions")
 def get_recent_questions(
-    user_name: str = "default_user",
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     questions = (
         db.query(models.Question, models.StudyMaterial)
@@ -18,7 +19,7 @@ def get_recent_questions(
             models.StudyMaterial, 
             models.Question.material_id == models.StudyMaterial.id,
         )
-        .filter(models.StudyMaterial.user_name == user_name)
+        .filter(models.StudyMaterial.user_name == current_user.user_name)
         .order_by(models.Question.created_at.desc())
         .limit(20)
         .all()
@@ -27,7 +28,6 @@ def get_recent_questions(
     return [
         {
             "id": question.id,
-            "user_name": material.user_name,
             "material_id": question.material_id,
             "subject": material.subject,
             "question_text": question.question_text,
@@ -44,12 +44,12 @@ def get_recent_questions(
     
 @router.get("/wrong-answers")
 def get_recent_wrong_answers(
-    user_name: str = "default_user",
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     wrong_answers = (
         db.query(models.WrongAnswer)
-        .filter(models.WrongAnswer.user_name == user_name)
+        .filter(models.WrongAnswer.user_name == current_user.user_name)
         .order_by(models.WrongAnswer.created_at.desc())
         .limit(20)
         .all()
@@ -58,7 +58,6 @@ def get_recent_wrong_answers(
     return [
         {
             "id": wrong_answer.id,
-            "user_name": wrong_answer.user_name,
             "question_id": wrong_answer.question_id,
             "user_answer": wrong_answer.user_answer,
             "correct_answer": wrong_answer.correct_answer,

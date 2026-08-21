@@ -20,6 +20,9 @@ if "access_token" not in st.session_state:
 if "user_name" not in st.session_state:
     st.session_state.user_name = "default_user"
 
+if "validated_access_token" not in st.session_state:
+    st.session_state.validated_access_token = None
+
 st.sidebar.header("사용자")
 
 auth_mode = st.sidebar.radio(
@@ -102,6 +105,34 @@ def get_auth_headers():
         }
     return {}
 
+if (
+    st.session_state.access_token
+    and st.session_state.validated_access_token != st.session_state.access_token
+):
+    try:
+        auth_response = requests.get(
+            f"{API_BASE_URL}/auth/me",
+            headers=get_auth_headers(),
+            timeout=10,
+        )
+    except requests.RequestException as error:
+        st.error(f"인증 서버에 연결할 수 없습니다: {error}")
+        st.stop()
+
+    if auth_response.status_code == 200:
+        auth_user = auth_response.json()["user"]
+        st.session_state.user_name = auth_user["user_name"]
+        st.session_state.validated_access_token = st.session_state.access_token
+    else:
+        st.session_state.access_token = None
+        st.session_state.validated_access_token = None
+        st.session_state.user_name = "default_user"
+        st.rerun()
+
+if not st.session_state.access_token:
+    st.info("CS Exam Coach를 사용하려면 로그인하거나 회원가입하세요.")
+    st.stop()
+
 tab_home, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14, tab15, tab16, tab17, tab18, tab19, tab20, tab21, tab22 = st.tabs(
     [
         "홈",
@@ -141,9 +172,7 @@ with tab_home:
     )
     
     if st.button("홈 대시보드 불러오기"):
-        payload = {
-            "user_name": st.session_state.user_name,
-        }
+        payload = {}
         
         if home_subject != "전체":
             payload["subject"] = home_subject
@@ -284,7 +313,6 @@ with tab1:
             response = requests.post(
                 f"{API_BASE_URL}/questions/generate", 
                 json={
-                    "user_name": st.session_state.user_name,
                     "subject": subject,
                     "content": content,
                     "question_type": question_type,
@@ -331,12 +359,8 @@ with tab1:
                 response = requests.post(
                     f"{API_BASE_URL}/grading/grade",
                     json={
-                        "user_name": st.session_state.user_name,
                         "question_id": question_id,
-                        "question_text": question["question_text"],
-                        "correct_answer": question["answer"],
                         "user_answer": user_answer,
-                        "concept": question.get("concept"),
                     },
                     headers=get_auth_headers(),
                     timeout=60,
@@ -399,7 +423,6 @@ with tab1:
                 response = requests.post(
                     f"{API_BASE_URL}/feedback/question",
                     json={
-                        "user_name": st.session_state.user_name,
                         "question_id": question["question_id"],
                         "quality_score": quality_score,
                         "explanation_score": explanation_score,
@@ -476,7 +499,6 @@ with tab2:
             }
             
             data = {
-                "user_name": st.session_state.user_name,
                 "subject": pdf_subject,
                 "start_page": int(start_page),
                 "end_page": int(end_page),
@@ -526,13 +548,12 @@ with tab2:
     if st.button("추출된 PDF를 RAG 문서로 인덱싱하기"):
         if not st.session_state.pdf_extracted_text.strip():
             st.button("먼저 PDF 텍스트를 추출하세요.")
-        elif st.session_state.pdf_material_id in None:
+        elif st.session_state.pdf_material_id is None:
             st.warning("material_id가 없습니다. PDF를 다시 추출하세요.")
         else:
             payload = {
-                "user_name": st.session_state.user_name,
                 "subject": pdf_subject,
-                "material_id": st.session_state.pdf_extracted_text
+                "material_id": st.session_state.pdf_material_id,
             }
             
             if st.session_state.pdf_pages:
@@ -589,7 +610,6 @@ with tab2:
             response = requests.post(
                 f"{API_BASE_URL}/questions/generate", 
                 json={
-                    "user_name": st.session_state.user_name,
                     "subject": pdf_subject,
                     "content": st.session_state.pdf_extracted_text,
                     "question_type": pdf_question_type,
@@ -632,7 +652,6 @@ with tab3:
             response = requests.get(
                 f"{API_BASE_URL}/rag/documents",
                 params={
-                    "user_name": st.session_state.user_name,
                     "subject": rag_subject,
                 },
                 headers=get_auth_headers(),
@@ -687,7 +706,6 @@ with tab3:
             st.warning("질문을 입력하세요.")
         else:
             payload = {
-                "user_name": st.session_state.user_name,
                 "subject": rag_subject,
                 "question": rag_question,
                 "top_k": top_k,
@@ -787,7 +805,6 @@ with tab3:
             response = requests.post(
                 f"{API_BASE_URL}/rag-feedback/answer",
                 json={
-                    "user_name": st.session_state.user_name,
                     "subject": st.session_state.subject,
                     "material_id": st.session_state.material_id,
                     "question": st.session_state.question,
@@ -822,9 +839,7 @@ with tab4:
         key="manage_subject",
     )
     
-    params = {
-        "user_name": st.session_state.user_name,
-    }
+    params = {}
     
     if manage_subject != "전체":
         params["subject"] = manage_subject
@@ -882,7 +897,6 @@ with tab4:
                         delete_response = requests.delete(
                             f"{API_BASE_URL}/rag/documents",
                             json={
-                                "user_name": st.session_state.user_name,
                                 "subject": document["subject"],
                                 "material_id": document["material_id"],
                             },
@@ -931,7 +945,6 @@ with tab5:
             response = requests.get(
                 f"{API_BASE_URL}/rag/documents",
                 params={
-                    "user_name": st.session_state.user_name,
                     "subject": rag_q_subject,
                 },
                 headers=get_auth_headers(),
@@ -997,7 +1010,6 @@ with tab5:
     
     if st.button("RAG 기반 예상문제 생성하기"):
         payload = {
-            "user_name": st.session_state.user_name,
             "subject": rag_q_subject,
             "question_type": rag_q_type,
             "difficulty": rag_q_difficulty,
@@ -1076,7 +1088,6 @@ with tab6:
             response = requests.get(
                 f"{API_BASE_URL}/rag/documents",
                 params={
-                    "user_name": st.session_state.user_name,
                     "subject": weak_subject,
                 },
                 headers=get_auth_headers(),
@@ -1151,7 +1162,6 @@ with tab6:
     
     if st.button("약점 기반 RAG 문제 생성하기"):
         payload = {
-            "user_name": st.session_state.user_name,
             "subject": weak_subject,
             "weakness_count": weakness_count,
             "question_count": weak_question_count,
@@ -1238,7 +1248,6 @@ with tab7:
         response = requests.get(
             f"{API_BASE_URL}/exam-papers/questions",
             params={
-                "user_name": st.session_state.user_name,
                 "subject": exam_subject,
                 "limit": exam_limit,
             },
@@ -1308,7 +1317,6 @@ with tab7:
                 response = requests.post(
                     f"{API_BASE_URL}/exam-papers/generate",
                     json={
-                        "user_name": st.session_state.user_name,
                         "subject": exam_subject,
                         "question_ids": selected_question_ids,
                         "title": exam_title,
@@ -1365,7 +1373,6 @@ with tab8:
         response = requests.get(
             f"{API_BASE_URL}/exam-papers/questions",
             params={
-                "user_name": st.session_state.user_name,
                 "subject": attempt_subject,
                 "limit": attempt_limit,
             },
@@ -1439,7 +1446,6 @@ with tab8:
                 response = requests.post(
                     f"{API_BASE_URL}/exam-attempts/submit",
                     json={
-                        "user_name": st.session_state.user_name,
                         "subject": attempt_subject,
                         "title": attempt_title,
                         "answers": answer_payload,
@@ -1492,7 +1498,6 @@ with tab8:
         response = requests.get(
             f"{API_BASE_URL}/exam-attempts/history",
             params={
-                "user_name": st.session_state.user_name,
                 "subject": attempt_subject,
                 "limit": 20,
             },
@@ -1539,7 +1544,6 @@ with tab9:
     
     if st.button("응시 분석 불러오기"):
         params = {
-            "user_name": st.session_state.user_name,
             "limit": analytics_limit,
         }
         
@@ -1640,7 +1644,6 @@ with tab10:
     
     if st.button("개인 맞춤 학습 리포트 생성하기"):
         payload = {
-            "user_name": st.session_state.user_name,
             "limit": report_limit,
         }
         
@@ -1729,7 +1732,6 @@ with tab11:
         response = requests.post(
             f"{API_BASE_URL}/study-goals",
             json={
-                "user_name": st.session_state.user_name,
                 "subject": goal_subject,
                 "title": goal_title,
                 "target_score": target_score,
@@ -1757,7 +1759,6 @@ with tab11:
         response = requests.get(
             f"{API_BASE_URL}/study-goals",
             params={
-                "user_name": st.session_state.user_name,
                 "subject": goal_subject,
             },
             headers=get_auth_headers(),
@@ -1795,9 +1796,6 @@ with tab11:
         if st.button("목표 상태 분석하기"):
             response = requests.get(
                 f"{API_BASE_URL}/study-goals/{selected_goal_id}/status",
-                params={
-                    "user_name": st.session_state.user_name,
-                },
                 headers=get_auth_headers(),
                 timeout=30,
             )
@@ -1837,7 +1835,6 @@ with tab11:
             response = requests.post(
                 f"{API_BASE_URL}/study-goals/strategy",
                 json={
-                    "user_name": st.session_state.user_name,
                     "goal_id": selected_goal_id,
                 },
                 headers=get_auth_headers(),
@@ -1893,7 +1890,6 @@ with tab12:
         response = requests.get(
             f"{API_BASE_URL}/study-goals",
             params={
-                "user_name": st.session_state.user_name,
                 "subject": dashboard_subject,
             },
             headers=get_auth_headers(),
@@ -1932,7 +1928,6 @@ with tab12:
             response = requests.post(
                 f"{API_BASE_URL}/goal-dashboard",
                 json={
-                    "user_name": st.session_state.user_name,
                     "goal_id": selected_dashboard_goal_id,
                 },
                 headers=get_auth_headers(),
@@ -2062,7 +2057,6 @@ with tab13:
     
     if st.button("오늘의 스마트 복습 큐 생성하기"):
         payload = {
-            "user_name": st.session_state.user_name,
             "limit": smart_limit,
         }
         
@@ -2134,7 +2128,6 @@ with tab13:
     
     if st.button("저장된 스마트 복습 큐 불러오기"):
         params = {
-            "user_name": st.session_state.user_name,
             "include_done": include_done,
             "limit": 30,
         }
@@ -2209,7 +2202,6 @@ with tab13:
                 response = requests.patch(
                     f"{API_BASE_URL}/smart-review/queue/items/{item['id']}",
                     json={
-                        "user_name": st.session_state.user_name,
                         "is_done": new_done,
                     },
                     headers=get_auth_headers(),
@@ -2239,7 +2231,6 @@ with tab14:
         response = requests.get(
             f"{API_BASE_URL}/study-goals",
             params={
-                "user_name": st.session_state.user_name,
                 "subject": checklist_subject,
             },
             headers=get_auth_headers(),
@@ -2288,7 +2279,6 @@ with tab14:
             response = requests.post(
                 f"{API_BASE_URL}/study-checklists/generate",
                 json={
-                    "user_name": st.session_state.user_name,
                     "goal_id": selected_checklist_goal_id,
                     "item_count": item_count,
                 },
@@ -2308,7 +2298,6 @@ with tab14:
     
     if st.button("체크리스트 불러오기"):
         params = {
-            "user_name": st.session_state.user_name,
             "subject": checklist_subject,
         }
         
@@ -2372,7 +2361,6 @@ with tab14:
                 response = requests.patch(
                     f"{API_BASE_URL}/study-checklists/{item['id']}",
                     json={
-                        "user_name": st.session_state.use_name,
                         "is_done": new_done,
                     },
                     headers=get_auth_headers(),
@@ -2436,7 +2424,6 @@ with tab15:
         response = requests.get(
             f"{API_BASE_URL}/study-goals",
             params={
-                "user_name": st.session_state.user_name,
                 "subject": session_subject,
             },
             headers=get_auth_headers(),
@@ -2477,7 +2464,6 @@ with tab15:
         
     if st.button("세션 연결용 체크리스트 불러오기"):
         params = {
-            "user_name": st.session_state.user_name,
             "subject": session_subject,
         }
         
@@ -2529,7 +2515,6 @@ with tab15:
             st.warning("학습 세션 저장 시에는 구체적인 과목을 선택하세요.")
         else:
             payload = {
-                "user_name": st.session_state.user_name,
                 "subject": session_subject,
                 "goal_id": linked_goal_id,
                 "checklist_item_id": linked_checklist_item_id,
@@ -2559,7 +2544,6 @@ with tab15:
     
     if st.button("학습 세션 요약 불러오기"):
         params = {
-            "user_name": st.session_state.user_name,
         }
         
         if session_subject != "전체":
@@ -2600,7 +2584,6 @@ with tab15:
         response = requests.get(
             f"{API_BASE_URL}/study-sessions",
             params={
-                "user_name": st.session_state.user_name,
                 "subject": session_subject,
                 "limit": 20,
             },
@@ -2653,7 +2636,6 @@ with tab16:
     
     if st.button("주간 학습 리포트 생성하기"):
         payload = {
-            "user_name": st.session_state.user_name,
             "days": weekly_days,
         }
         
@@ -2725,8 +2707,7 @@ with tab17:
 
     if st.button("오답 복습 추천 받기"):
         response = requests.get(
-            f"{API_BASE_URL}/review/recommendations", 
-            params={"user_name": st.session_state.user_name},
+            f"{API_BASE_URL}/review/recommendations",
             headers=get_auth_headers(),
             timeout=30,
         )
@@ -2750,8 +2731,7 @@ with tab18:
     
     if st.button("최근 생성 문제 불러오기"):
         response = requests.get(
-            f"{API_BASE_URL}/history/questions", 
-            params={"user_name": st.session_state.user_name},
+            f"{API_BASE_URL}/history/questions",
             headers=get_auth_headers(),
             timeout=30,
         )
@@ -2779,8 +2759,7 @@ with tab18:
             
     if st.button("최근 오답 기록 불러오기"):
         response = requests.get(
-            f"{API_BASE_URL}/history/wrong-answers", 
-            params={"user_name": st.session_state.user_name},
+            f"{API_BASE_URL}/history/wrong-answers",
             headers=get_auth_headers(),
             timeout=30,
         )
@@ -2818,7 +2797,6 @@ with tab19:
         response = requests.get(
             f"{API_BASE_URL}/review/study-plan", 
             params={
-                "user_name": st.session_state.user_name,
                 "exam_date": exam_date.strftime("%Y-%m-%d"),
             },
             headers=get_auth_headers(),
@@ -2865,8 +2843,7 @@ with tab20:
     
     if st.button("내 평가 요약 불러오기"):
         response = requests.get(
-            f"{API_BASE_URL}/feedback/summary", 
-            params={"user_name": st.session_state.user_name},
+            f"{API_BASE_URL}/feedback/summary",
             headers=get_auth_headers(),
             timeout=30,
         )
@@ -2978,9 +2955,7 @@ with tab22:
         key="rag_feedback_subject",
     )
     
-    params = {
-        "user_name": st.session_state.user_name,
-    }
+    params = {}
     
     if rag_feedback_subject != "전체":
         params["subject"] = rag_feedback_subject

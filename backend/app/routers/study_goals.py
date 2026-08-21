@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import ai_service, models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/study-goals", tags=["study-goals"])
 
@@ -14,13 +15,8 @@ router = APIRouter(prefix="/study-goals", tags=["study-goals"])
 def create_study_goal(
     request: schemas.StudyGoalCreateRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    if request.target_score < 0 or request.target_score > 100:
-        raise HTTPException(
-            status_code=400,
-            detail="target_score는 0점 이상 100점 이하이어야 합니다.",
-        )
-        
     if request.exam_date < date.today():
         raise HTTPException(
             status_code=400,
@@ -28,7 +24,7 @@ def create_study_goal(
         )
         
     goal = models.StudyGoal(
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         subject=request.subject,
         title=request.title,
         target_score=request.target_score,
@@ -44,7 +40,6 @@ def create_study_goal(
         "message": "학습 목표가 생성되었습니다",
         "goal": {
             "id": goal.id,
-            "user_name": goal.user_name,
             "subject": goal.subject,
             "title": goal.title,
             "target_score": goal.target_score,
@@ -56,12 +51,12 @@ def create_study_goal(
     
 @router.get("")
 def list_study_goals(
-    user_name: str,
     subject: str | None = None,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.StudyGoal).filter(
-        models.StudyGoal.user_name == user_name
+        models.StudyGoal.user_name == current_user.user_name
     )
     
     if subject:
@@ -72,7 +67,7 @@ def list_study_goals(
     return {
         "success": True,
         "goal_count": len(goals),
-        "goas": [
+        "goals": [
             {
                 "id": goal.id,
                 "subject": goal.subject,
@@ -90,8 +85,20 @@ def list_study_goals(
 @router.get("/{goal_id}/status")
 def get_study_goal_status(
     goal_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    return _get_study_goal_status(
+        goal_id=goal_id,
+        user_name=current_user.user_name,
+        db=db,
+    )
+
+
+def _get_study_goal_status(
+    goal_id: int,
     user_name: str,
-    db: Session = Depends(get_db)
+    db: Session,
 ):
     goal = (
         db.query(models.StudyGoal)
@@ -189,10 +196,11 @@ def get_study_goal_status(
 def generate_study_goal_strategy(
     request: schemas.StudyGoalStrategyRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
-    status_result = get_study_goal_status(
+    status_result = _get_study_goal_status(
         goal_id=request.goal_id,
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         db=db,
     )
     
@@ -201,7 +209,7 @@ def generate_study_goal_strategy(
     weak_concepts = status_result["weak_concepts"]
     
     strategy = ai_service.generate_goal_strategy(
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         goal=goal,
         current_status=current_status,
         weak_concepts=weak_concepts,

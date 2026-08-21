@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import ai_service, models, schemas
 from app.database import get_db
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/smart-review", tags=["smart-review"])
 
@@ -13,6 +14,7 @@ router = APIRouter(prefix="/smart-review", tags=["smart-review"])
 def save_smart_review_queue(
     request: schemas.SmartReviewQueueRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     if request.limit <= 0 or request.limit > 10:
         raise HTTPException(
@@ -25,7 +27,7 @@ def save_smart_review_queue(
             models.WrongAnswer.concept,
             func.count(models.WrongAnswer.id).label("wrong_count"),
         )
-        .filter(models.WrongAnswer.user_name == request.user_name)
+        .filter(models.WrongAnswer.user_name == current_user.user_name)
         .filter(models.WrongAnswer.concept.isnot(None))
         .filter(models.WrongAnswer.concept != "")
     )
@@ -56,7 +58,7 @@ def save_smart_review_queue(
     
     recent_wrong_query = (
         db.query(models.WrongAnswer)
-        .filter(models.WrongAnswer.user_name == request.user_name)
+        .filter(models.WrongAnswer.user_name == current_user.user_name)
         .order_by(models.WrongAnswer.created_at.desc())
         .limit(10)
     )
@@ -77,7 +79,7 @@ def save_smart_review_queue(
     
     checklist_query = (
         db.query(models.StudyChecklistItem)
-        .filter(models.StudyChecklistItem.user_name == request.user_name)
+        .filter(models.StudyChecklistItem.user_name == current_user.user_name)
         .filter(models.StudyChecklistItem.is_done == False)
     )
     
@@ -111,7 +113,7 @@ def save_smart_review_queue(
     
     session_query = (
         db.query(models.StudySession)
-        .filter(models.StudySession.user_name == request.user_name)
+        .filter(models.StudySession.user_name == current_user.user_name)
         .filter(models.StudySession.created_at >= since)
     )
     
@@ -141,7 +143,7 @@ def save_smart_review_queue(
     
     attempt_query = (
         db.query(models.ExamAttempt)
-        .filter(models.ExamAttempt.user_name == request.user_name)
+        .filter(models.ExamAttempt.user_name == current_user.user_name)
         .filter(models.ExamAttempt.created_at >= since)
     )
     
@@ -176,7 +178,7 @@ def save_smart_review_queue(
         )
         
     generated_items = ai_service.generate_smart_review_queue_items(
-        user_name=request.user_name,
+        user_name=current_user.user_name,
         subject=request.subject,
         weak_concepts=weak_concepts,
         recent_wrong_answers=recent_wrong_data,
@@ -190,7 +192,7 @@ def save_smart_review_queue(
     
     for item in generated_items:
         queue_item = models.SmartReviewQueueItem(
-            user_name=request.user_name,
+            user_name=current_user.user_name,
             subject=request.subject,
             title=item.get("title", ""),
             reason=item.get("reason", ""),
@@ -231,14 +233,14 @@ def save_smart_review_queue(
     
 @router.get("/queue/items")
 def list_smart_review_queue_items(
-    user_name: str,
     subject: str | None = None,
     include_done: bool = True,
     limit: int = Query(default=30, ge=1, le=100),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.SmartReviewQueueItem).filter(
-        models.SmartReviewQueueItem.user_name == user_name
+        models.SmartReviewQueueItem.user_name == current_user.user_name
     )
     
     if subject:
@@ -290,11 +292,12 @@ def update_smart_review_queue_item(
     item_id: int,
     request: schemas.SmartReviewQueueUpdateRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     item = (
         db.query(models.SmartReviewQueueItem)
         .filter(models.SmartReviewQueueItem.id == item_id)
-        .filter(models.SmartReviewQueueItem.user_name == request.user_name)
+        .filter(models.SmartReviewQueueItem.user_name == current_user.user_name)
         .first()
     )
     
