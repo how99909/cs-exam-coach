@@ -201,11 +201,16 @@ with tab_home:
             
             with col5:
                 st.metric("학습 세션 수", session_summary["session_count"])
-            with col5:
-                st.metric("평균 집중도", session_summary["avg_focus_score"])
-            with col5:
+            with col6:
+                st.metric(
+                    "평균 집중도", 
+                    session_summary["avg_focus_score"] 
+                    if session_summary["avg_focus_score"] is not None 
+                    else "-"
+                )
+            with col7:
                 st.metric("체크리스트 진행률", f"{session_summary['progress_rate']}%")
-            with col5:
+            with col8:
                 st.metric("최근 7일 응시 수", session_summary["attempt_count"])
                 
             st.subheader("오늘 남은 복습 큐")
