@@ -52,7 +52,6 @@ class QuestionFeedbackCreate(BaseModel):
 
 class QuestionFeedbackResponse(BaseModel):
     id: int
-    user_name: str
     question_id: int
     quality_score: int
     explanation_score: int

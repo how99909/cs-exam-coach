@@ -26,7 +26,7 @@ from app.routers import (
 
 # Base.metadata.create_all(bind=engine)
 
-APP_VERSION = "0.4.2"
+APP_VERSION = "0.4.3"
 
 app = FastAPI(
     title="CS Exam Coach API",

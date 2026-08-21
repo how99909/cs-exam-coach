@@ -64,8 +64,26 @@ def index_document(
 @router.post("/ask")
 def ask_document(
     request: schemas.RagAskRequest,
+    db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    if request.material_id is not None:
+        material = (
+            db.query(models.StudyMaterial)
+            .filter(models.StudyMaterial.id == request.material_id)
+            .filter(
+                models.StudyMaterial.user_name == current_user.user_name
+            )
+            .filter(models.StudyMaterial.subject == request.subject)
+            .first()
+        )
+        
+        if material is None:
+            raise HTTPException(
+                status_code=404,
+                detail="학습 자료를 찾지 못했습니다.",
+            )
+        
     result =  rag_service.answer_with_context(
         user_name=current_user.user_name,
         subject=request.subject,
@@ -97,8 +115,25 @@ def list_documents(
 @router.delete("/documents")
 def delete_document(
     request: schemas.RagDeleteRequest,
+    db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    material = (
+        db.query(models.StudyMaterial)
+        .filter(models.StudyMaterial.id == request.material_id)
+        .filter(
+            models.StudyMaterial.user_name == current_user.user_name
+        )
+        .filter(models.StudyMaterial.subject == request.subject)
+        .first()
+    )
+    
+    if material is None:
+        raise HTTPException(
+            status_code=404,
+            detail="학습 자료를 찾지 못했습니다.",
+        )
+    
     result = rag_service.delete_indexed_document(
         user_name=current_user.user_name,
         subject=request.subject,

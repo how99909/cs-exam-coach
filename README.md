@@ -2,9 +2,9 @@
 
 컴퓨터공학 전공 시험 대비를 위한 AI 문제 생성·채점·복습 관리 서비스입니다.
 
-- 제품 버전: **v4.2**
-- API 버전: **0.4.2**
-- 최근 주요 변경: 전체 학습 API JWT 보호, 사용자별 데이터 격리 및 인증 흐름 안정화
+- 제품 버전: **v4.3**
+- API 버전: **0.4.3**
+- 최근 주요 변경: 피드백 API 사용자 격리 강화, PDF→RAG 연동 및 리소스 소유권 검증 안정화
 
 ## 1. 프로젝트 소개
 
@@ -61,7 +61,8 @@ CS Exam Coach는 사용자가 직접 입력하거나 PDF에서 추출한 학습 
 - 문서 근거 기반 질의응답과 출처 chunk 표시
 - 인덱싱된 문서 또는 오답 취약 개념 기반 예상문제 생성
 - 생성 문제와 RAG 답변에 대한 사용자 평가 저장
-- 저평가 문제, 최근 의견, 평가 요약을 제공하는 운영 대시보드
+- 현재 로그인 사용자 범위의 저평가 문제, 최근 의견, 평가 요약 제공
+- PDF에서 저장된 자료 ID와 과목·소유자를 검증한 뒤 RAG 문서 인덱싱
 
 ### 스마트 복습 큐
 
@@ -190,6 +191,14 @@ PYTHONPATH=backend python -m unittest discover -s backend/tests -v
 
 요청 필드, 허용 범위, 응답 모델의 최신 정의는 실행 중인 [Swagger UI](http://localhost:8000/docs)를 기준으로 확인하세요.
 
+### v0.4.3 API 변경 사항
+
+- 피드백 조회·운영 대시보드 경로에도 Bearer 인증을 적용하고 현재 JWT 사용자 데이터만 집계합니다.
+- `POST /rag/index`는 `material_id`, `subject`, JWT 사용자의 소유권 일치를 검증합니다.
+- PDF→RAG 프론트엔드는 추출 텍스트가 아닌 PDF 저장 결과의 실제 `material_id`를 전송합니다.
+- 동일한 `user_name` 또는 email로 동시에 가입할 때 DB 고유 제약 오류를 `400 Bad Request`로 변환합니다.
+- 클라이언트가 전달한 `user_name`, 문제 본문 또는 정답을 신뢰하지 않고 서버의 JWT와 저장 데이터를 사용합니다.
+
 ### 공통 인증 및 사용자 범위
 
 - 공개 경로는 `GET /`, `POST /auth/register`, `POST /auth/login`뿐입니다.
@@ -294,9 +303,9 @@ Authorization: Bearer <access_token>
 | GET | `/feedback/low-exam-relevance` | 현재 사용자의 시험 적합도가 낮은 문제 조회 |
 | GET | `/feedback/recent-comments` | 현재 사용자의 최근 평가 의견 조회 |
 | GET | `/feedback/admin-dashboard` | 현재 사용자 범위의 문제 평가 운영 대시보드 |
-| POST | `/rag-feedback/answer` | RAG 답변 평가 저장 |
-| GET | `/rag-feedback/summary` | RAG 평가 요약 |
-| GET | `/rag-feedback/recent` | 최근 RAG 평가 조회 |
+| POST | `/rag-feedback/answer` | 현재 사용자의 RAG 답변 평가 저장 |
+| GET | `/rag-feedback/summary` | 현재 사용자의 RAG 평가 요약 |
+| GET | `/rag-feedback/recent` | 현재 사용자의 최근 RAG 평가 조회 |
 
 ### RAG
 
@@ -409,6 +418,7 @@ Authorization: Bearer <access_token>
 - 파일 크기 제한과 악성 PDF 전용 검증이 아직 없습니다.
 - PDF 텍스트 추출 품질에 따라 페이지 정보와 검색 근거의 정확도가 달라질 수 있습니다.
 - 한 번의 질의에서 여러 `material_id`를 조합해 선택하는 기능은 없습니다.
+- RAG 인덱싱은 PostgreSQL에 존재하고 JWT 사용자와 과목이 일치하는 자료만 허용합니다. 임의 텍스트만으로 별도 자료 ID를 만들 수는 없습니다.
 - RAG 문서 삭제는 Chroma의 chunk만 삭제하며 PostgreSQL의 `StudyMaterial`은 유지합니다.
 - 표시되는 source는 검색된 페이지와 chunk 기준이며 답변 전체의 완전한 근거를 보장하지 않습니다.
 - 유사한 chunk에서 비슷한 문제가 반복 생성될 수 있습니다.

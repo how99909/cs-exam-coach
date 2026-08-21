@@ -56,11 +56,9 @@ def get_rag_feedback_summary(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    user_name = current_user.user_name
-    
     result = crud_rag_feedback.get_rag_feedback_summary(
         db=db,
-        user_name=user_name,
+        user_name=current_user.user_name,
         subject=subject,
     )
     
@@ -89,11 +87,9 @@ def get_recent_rag_feedback(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    user_name = current_user.user_name
-    
     feedback_items = crud_rag_feedback.get_recent_rag_feedback(
         db=db,
-        user_name=user_name,
+        user_name=current_user.user_name,
         subject=subject,
         limit=limit,
     )
