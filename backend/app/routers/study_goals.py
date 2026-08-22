@@ -24,7 +24,7 @@ def create_study_goal(
         )
         
     goal = models.StudyGoal(
-        user_name=current_user.user_name,
+        user_id=current_user.id,
         subject=request.subject,
         title=request.title,
         target_score=request.target_score,
@@ -56,7 +56,7 @@ def list_study_goals(
     current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.StudyGoal).filter(
-        models.StudyGoal.user_name == current_user.user_name
+        models.StudyGoal.user_id == current_user.id
     )
     
     if subject:
@@ -90,20 +90,20 @@ def get_study_goal_status(
 ):
     return _get_study_goal_status(
         goal_id=goal_id,
-        user_name=current_user.user_name,
+        user_id=current_user.id,
         db=db,
     )
 
 
 def _get_study_goal_status(
     goal_id: int,
-    user_name: str,
+    user_id: int,
     db: Session,
 ):
     goal = (
         db.query(models.StudyGoal)
         .filter(models.StudyGoal.id == goal_id)
-        .filter(models.StudyGoal.user_name == user_name)
+        .filter(models.StudyGoal.user_id == user_id)
         .first()
     )
     
@@ -115,7 +115,7 @@ def _get_study_goal_status(
         
     attempts = (
         db.query(models.ExamAttempt)
-        .filter(models.ExamAttempt.user_name == user_name)
+        .filter(models.ExamAttempt.user_id == user_id)
         .filter(models.ExamAttempt.subject == goal.subject)
         .order_by(models.ExamAttempt.created_at.desc())
         .limit(20)
@@ -150,7 +150,7 @@ def _get_study_goal_status(
             models.ExamAttempt,
             models.ExamAttempt.id == models.ExamAttemptAnswer.attempt_id,
         )
-        .filter(models.ExamAttempt.user_name == user_name)
+        .filter(models.ExamAttempt.user_name == user_id)
         .filter(models.ExamAttempt.subject == goal.subject)
         .filter(models.ExamAttemptAnswer.is_correct == False)
         .filter(models.Question.concept.isnot(None))
@@ -200,7 +200,7 @@ def generate_study_goal_strategy(
 ):
     status_result = _get_study_goal_status(
         goal_id=request.goal_id,
-        user_name=current_user.user_name,
+        user_id=current_user.id,
         db=db,
     )
     

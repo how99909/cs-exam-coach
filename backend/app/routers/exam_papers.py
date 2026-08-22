@@ -15,12 +15,10 @@ def list_questions_for_exam_paper(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    user_name = current_user.user_name
-    
     questions = (
         db.query(models.Question)
         .join(models.StudyMaterial, models.Question.material_id == models.StudyMaterial.id)
-        .filter(models.StudyMaterial.user_name == user_name)
+        .filter(models.StudyMaterial.user_id == current_user.id)
         .filter(models.StudyMaterial.subject == subject)
         .order_by(models.Question.created_at.desc())
         .limit(limit)
@@ -61,7 +59,7 @@ def generate_exam_paper(
     questions = (
         db.query(models.Question)
         .join(models.StudyMaterial, models.Question.material_id == models.StudyMaterial.id)
-        .filter(models.StudyMaterial.user_name == current_user.user_name)
+        .filter(models.StudyMaterial.user_id == current_user.id)
         .filter(models.StudyMaterial.subject == request.subject)
         .filter(models.Question.id.in_(request.question_ids))
         .all()

@@ -34,7 +34,7 @@ def submit_exam_attempt(
     questions = (
         db.query(models.Question)
         .join(models.StudyMaterial, models.Question.material_id == models.StudyMaterial.id)
-        .filter(models.StudyMaterial.user_name == user_name)
+        .filter(models.StudyMaterial.user_id == current_user.id)
         .filter(models.StudyMaterial.subject == request.subject)
         .filter(models.Question.id.in_(question_ids))
         .all()
@@ -85,7 +85,7 @@ def submit_exam_attempt(
     
     try:
         attempt = models.ExamAttempt(
-            user_name=user_name,
+            user_id=current_user.id,
             subject=request.subject,
             title=request.title,
             total_questions=len(request.answers),
@@ -110,7 +110,7 @@ def submit_exam_attempt(
             if not is_correct:
                 db.add(
                     models.WrongAnswer(
-                        user_name=user_name,
+                        user_id=current_user.id,
                         question_id=question.id,
                         user_answer=answer_item.user_answer,
                         correct_answer=question.answer,
@@ -146,7 +146,7 @@ def get_exam_attempt_history(
     current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.user_name == current_user.user_name
+        models.ExamAttempt.user_id == current_user.id
     )
     
     if subject:
@@ -185,7 +185,7 @@ def get_exam_attempt_detail(
     attempt = (
         db.query(models.ExamAttempt)
         .filter(models.ExamAttempt.id == attempt_id)
-        .filter(models.ExamAttempt.user_name == current_user.user_name)
+        .filter(models.ExamAttempt.user_id == current_user.id)
         .first()
     )
     
@@ -236,7 +236,7 @@ def get_exam_attempt_analytics(
     current_user: models.User = Depends(get_current_user),
 ):
     attempt_query = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.user_name == current_user.user_name
+        models.ExamAttempt.user_id == current_user.id
     )
     
     if subject:
@@ -317,7 +317,7 @@ def get_exam_attempt_analytics(
             func.max(models.ExamAttempt.score).label("max_score"),
             func.min(models.ExamAttempt.score).label("min_score"),
         )
-        .filter(models.ExamAttempt.user_name == current_user.user_name)
+        .filter(models.ExamAttempt.user_id == current_user.id)
         .group_by(models.ExamAttempt.subject)
         .all()
     )

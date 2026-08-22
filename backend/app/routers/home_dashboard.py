@@ -21,7 +21,7 @@ def get_home_dashboard(
     since = datetime.utcnow() - timedelta(days=7)
     
     goal_query = db.query(models.StudyGoal).filter(
-        models.StudyGoal.user_name == user_name
+        models.StudyGoal.user_id == current_user.id
     )
     
     if request.subject:
@@ -47,7 +47,7 @@ def get_home_dashboard(
         goal_summary = None
         
     session_query = db.query(models.StudySession).filter(
-        models.StudySession.user_name == user_name
+        models.StudySession.user_id == current_user.id
     ).filter(
         models.StudySession.created_at >= since
     )
@@ -77,7 +77,7 @@ def get_home_dashboard(
     }
     
     attempt_query = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.user_name == user_name
+        models.ExamAttempt.user_id == current_user.id
     ).filter(
         models.ExamAttempt.created_at >= since
     )
@@ -100,7 +100,7 @@ def get_home_dashboard(
     }
     
     queue_query = db.query(models.SmartReviewQueueItem).filter(
-        models.SmartReviewQueueItem.user_name == user_name
+        models.SmartReviewQueueItem.user_id == current_user.id
     )
     
     if request.subject:
@@ -143,7 +143,7 @@ def get_home_dashboard(
     }
 
     checklist_query = db.query(models.StudyChecklistItem).filter(
-        models.StudyChecklistItem.user_name == user_name
+        models.StudyChecklistItem.user_id == current_user.id
     )
 
     if request.subject:
@@ -173,7 +173,7 @@ def get_home_dashboard(
             models.WrongAnswer.concept,
             func.count(models.WrongAnswer.id).label("wrong_count"),
         )
-        .filter(models.WrongAnswer.user_name == user_name)
+        .filter(models.WrongAnswer.user_id == current_user.id)
         .filter(models.WrongAnswer.concept.isnot(None))
         .filter(models.WrongAnswer.concept != "")
     )

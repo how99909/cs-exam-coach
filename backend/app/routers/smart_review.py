@@ -27,7 +27,7 @@ def save_smart_review_queue(
             models.WrongAnswer.concept,
             func.count(models.WrongAnswer.id).label("wrong_count"),
         )
-        .filter(models.WrongAnswer.user_name == current_user.user_name)
+        .filter(models.WrongAnswer.user_id == current_user.id)
         .filter(models.WrongAnswer.concept.isnot(None))
         .filter(models.WrongAnswer.concept != "")
     )
@@ -58,7 +58,7 @@ def save_smart_review_queue(
     
     recent_wrong_query = (
         db.query(models.WrongAnswer)
-        .filter(models.WrongAnswer.user_name == current_user.user_name)
+        .filter(models.WrongAnswer.user_id == current_user.id)
         .order_by(models.WrongAnswer.created_at.desc())
         .limit(10)
     )
@@ -79,7 +79,7 @@ def save_smart_review_queue(
     
     checklist_query = (
         db.query(models.StudyChecklistItem)
-        .filter(models.StudyChecklistItem.user_name == current_user.user_name)
+        .filter(models.StudyChecklistItem.user_id == current_user.id)
         .filter(models.StudyChecklistItem.is_done == False)
     )
     
@@ -113,7 +113,7 @@ def save_smart_review_queue(
     
     session_query = (
         db.query(models.StudySession)
-        .filter(models.StudySession.user_name == current_user.user_name)
+        .filter(models.StudySession.user_id == current_user.id)
         .filter(models.StudySession.created_at >= since)
     )
     
@@ -143,7 +143,7 @@ def save_smart_review_queue(
     
     attempt_query = (
         db.query(models.ExamAttempt)
-        .filter(models.ExamAttempt.user_name == current_user.user_name)
+        .filter(models.ExamAttempt.user_id == current_user.id)
         .filter(models.ExamAttempt.created_at >= since)
     )
     
@@ -192,7 +192,7 @@ def save_smart_review_queue(
     
     for item in generated_items:
         queue_item = models.SmartReviewQueueItem(
-            user_name=current_user.user_name,
+            user_id=current_user.id,
             subject=request.subject,
             title=item.get("title", ""),
             reason=item.get("reason", ""),
@@ -240,7 +240,7 @@ def list_smart_review_queue_items(
     current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.SmartReviewQueueItem).filter(
-        models.SmartReviewQueueItem.user_name == current_user.user_name
+        models.SmartReviewQueueItem.user_id == current_user.id
     )
     
     if subject:
@@ -297,7 +297,7 @@ def update_smart_review_queue_item(
     item = (
         db.query(models.SmartReviewQueueItem)
         .filter(models.SmartReviewQueueItem.id == item_id)
-        .filter(models.SmartReviewQueueItem.user_name == current_user.user_name)
+        .filter(models.SmartReviewQueueItem.user_id == current_user.id)
         .first()
     )
     

@@ -22,7 +22,7 @@ def grade_answer(
         )
         .filter(models.Question.id == request.question_id)
         .filter(
-            models.StudyMaterial.user_name == current_user.user_name
+            models.StudyMaterial.user_id == current_user.id
         )
         .first()
     )
@@ -41,7 +41,7 @@ def grade_answer(
     )
     
     wrong_answer = models.WrongAnswer(
-        user_name=current_user.user_name,
+        user_id=current_user.id,
         question_id=question.id,
         user_answer=request.user_answer,
         correct_answer=question.answer,

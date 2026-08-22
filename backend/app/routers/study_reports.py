@@ -16,7 +16,7 @@ def generate_personal_study_report(
     current_user: models.User = Depends(get_current_user),
 ):
     attempt_query = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.user_name == current_user.user_name
+        models.ExamAttempt.user_id == current_user.id
     )
     
     if request.subject:

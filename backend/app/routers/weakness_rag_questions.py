@@ -22,7 +22,7 @@ def generate_weakness_rag_questions(
             models.WrongAnswer.concept,
             func.count(models.WrongAnswer.id).label("wrong_count"),
         )
-        .filter(models.WrongAnswer.user_name == current_user.user_name)
+        .filter(models.WrongAnswer.user_id == current_user.id)
         .filter(models.WrongAnswer.concept.isnot(None))
         .filter(models.WrongAnswer.concept != "")
         .group_by(models.WrongAnswer.concept)
@@ -84,7 +84,7 @@ def generate_weakness_rag_questions(
         db.query(models.StudyMaterial)
         .filter(models.StudyMaterial.id == target_material_id)
         .filter(
-            models.StudyMaterial.user_name == current_user.user_name
+            models.StudyMaterial.user_id == current_user.id
         )
         .filter(models.StudyMaterial.subject == request.subject)
         .first()

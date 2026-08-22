@@ -43,7 +43,7 @@ def generate_rag_based_questions(
         db.query(models.StudyMaterial)
         .filter(models.StudyMaterial.id == target_material_id)
         .filter(
-            models.StudyMaterial.user_name == current_user.user_name
+            models.StudyMaterial.user_id == current_user.id
         )
         .filter(models.StudyMaterial.subject == request.subject)
         .first()

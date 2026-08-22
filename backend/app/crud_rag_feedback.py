@@ -7,10 +7,11 @@ from app import models, schemas
 def create_rag_feedback(
     db: Session,
     user_name: str,
+    user_id: int,
     request: schemas.RagAnswerFeedbackCreate,
 ) -> models.RagAnswerFeedback:
     feedback = models.RagAnswerFeedback(
-        user_name=user_name,
+        user_id=user_id,
         subject=request.subject,
         material_id=request.material_id,
         question=request.question,
@@ -31,7 +32,7 @@ def create_rag_feedback(
 
 def get_rag_feedback_summary(
     db: Session,
-    user_name: str | None = None,
+    user_id: int | None = None,
     subject: str | None = None,
 ):
     query = db.query(
@@ -46,8 +47,8 @@ def get_rag_feedback_summary(
         ),
     )
     
-    if user_name:
-        query = query.filter(models.RagAnswerFeedback.user_name == user_name)
+    if user_id:
+        query = query.filter(models.RagAnswerFeedback.user_id == user_id)
         
     if subject:
         query = query.filter(models.RagAnswerFeedback.subject == subject)
@@ -57,14 +58,14 @@ def get_rag_feedback_summary(
 
 def get_recent_rag_feedback(
     db: Session,
-    user_name: str | None = None,
+    user_id: int | None = None,
     subject: str | None = None,
     limit: int = 20,
 ):
     query = db.query(models.RagAnswerFeedback)
         
-    if user_name:
-        query = query.filter(models.RagAnswerFeedback.user_name == user_name)
+    if user_id:
+        query = query.filter(models.RagAnswerFeedback.user_id == user_id)
         
     if subject:
         query = query.filter(models.RagAnswerFeedback.subject == subject)

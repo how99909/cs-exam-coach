@@ -27,7 +27,7 @@ def generate_weekly_report(
     start_at = end_at - timedelta(days=request.days)
     
     session_query = db.query(models.StudySession).filter(
-        models.StudySession.user_name == current_user.user_name
+        models.StudySession.user_id == current_user.id
     ).filter(
         models.StudySession.created_at >= start_at
     )
@@ -62,7 +62,7 @@ def generate_weekly_report(
     }
     
     attempt_query = db.query(models.ExamAttempt).filter(
-        models.ExamAttempt.user_name == current_user.user_name
+        models.ExamAttempt.user_id == current_user.id
     ).filter(
         models.ExamAttempt.created_at >= start_at
     )
@@ -139,7 +139,7 @@ def generate_weekly_report(
         ]
         
     checklist_query = db.query(models.StudyChecklistItem).filter(
-        models.StudyChecklistItem.user_name == current_user.user_name
+        models.StudyChecklistItem.user_id == current_user.id
     )
     
     if request.subject:

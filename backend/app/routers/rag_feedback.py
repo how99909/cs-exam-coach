@@ -26,7 +26,7 @@ def create_rag_answer_feedback(
         material = (
             db.query(models.StudyMaterial)
             .filter(models.StudyMaterial.id == request.material_id)
-            .filter(models.StudyMaterial.user_name == current_user.user_name)
+            .filter(models.StudyMaterial.user_id == current_user.id)
             .first()
         )
         if material is None:
@@ -40,6 +40,7 @@ def create_rag_answer_feedback(
     feedback = crud_rag_feedback.create_rag_feedback(
         db=db,
         user_name=current_user.user_name,
+        user_id=current_user.id,
         request=request,
     )
     
@@ -58,7 +59,7 @@ def get_rag_feedback_summary(
 ):
     result = crud_rag_feedback.get_rag_feedback_summary(
         db=db,
-        user_name=current_user.user_name,
+        user_id=current_user.id,
         subject=subject,
     )
     
@@ -89,7 +90,7 @@ def get_recent_rag_feedback(
 ):
     feedback_items = crud_rag_feedback.get_recent_rag_feedback(
         db=db,
-        user_name=current_user.user_name,
+        user_id=current_user.id,
         subject=subject,
         limit=limit,
     )

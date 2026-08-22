@@ -35,7 +35,7 @@ def create_study_session(
         goal = (
             db.query(models.StudyGoal)
             .filter(models.StudyGoal.id == request.goal_id)
-            .filter(models.StudyGoal.user_name == user_name)
+            .filter(models.StudyGoal.user_id == current_user.id)
             .first()
         )
         
@@ -49,7 +49,7 @@ def create_study_session(
         checklist_item = (
             db.query(models.StudyChecklistItem)
             .filter(models.StudyChecklistItem.id == request.checklist_item_id)
-            .filter(models.StudyChecklistItem.user_name == user_name)
+            .filter(models.StudyChecklistItem.user_id == current_user.id)
             .first()
         )
         
@@ -60,7 +60,7 @@ def create_study_session(
             )
             
     session = models.StudySession(
-        user_name=user_name,
+        user_id=current_user.id,
         subject=request.subject,
         goal_id=request.goal_id,
         checklist_item_id=request.checklist_item_id,
@@ -101,7 +101,7 @@ def list_study_sessions(
     current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.StudySession).filter(
-        models.StudySession.user_name == current_user.user_name
+        models.StudySession.user_id == current_user.id
     )
     
     if subject:
@@ -143,7 +143,7 @@ def get_study_session_summary(
     current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.StudySession).filter(
-        models.StudySession.user_name == current_user.user_name
+        models.StudySession.user_id == current_user.id
     )
     
     if subject:
@@ -173,7 +173,7 @@ def get_study_session_summary(
             func.sum(models.StudySession.duration_minutes).label("total_minutes"),
             func.avg(models.StudySession.focus_score).label("avg_focus_score"),
         )
-        .filter(models.StudySession.user_name == current_user.user_name)
+        .filter(models.StudySession.user_id == current_user.id)
         .group_by(models.StudySession.subject)
         .all()
     )

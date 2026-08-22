@@ -7,11 +7,11 @@ from app.database import Base
 class StudyMaterial(Base):
     __tablename__ = "study_materials"
     __table_args__ = (
-        Index("ix_study_materials_user_subject_created", "user_name", "subject", "created_at"),
+        Index("ix_study_materials_user_subject_created", "user_id", "subject", "created_at"),
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_name = Column(String(100), nullable=False, default="default_user")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     subject = Column(String(100), nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -21,7 +21,7 @@ class Question(Base):
     __tablename__ = "questions"
     
     id = Column(Integer, primary_key=True, index=True)
-    material_id = Column(Integer, nullable=False)
+    material_id = Column(Integer, ForeignKey("study_materials.id"), nullable=False)
     question_text = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
     explanation = Column(Text, nullable=True)
@@ -34,11 +34,11 @@ class Question(Base):
 class WrongAnswer(Base):
     __tablename__ = "wrong_answers"
     __table_args__ = (
-        Index("ix_wrong_answers_user_created", "user_name", "created_at"),
+        Index("ix_wrong_answers_user_created", "user_id", "created_at"),
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_name = Column(String(100), nullable=False, default="default_user")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     question_id = Column(Integer, nullable=False)
     user_answer = Column(Text, nullable=False)
     correct_answer = Column(Text, nullable=False)
@@ -52,7 +52,7 @@ class QuestionFeedback(Base):
     __tablename__ = "question_feedback"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_name = Column(String(100), nullable=False, default="default_user")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     question_id = Column(Integer, nullable=False)
     quality_score = Column(Integer, nullable=False)
     explanation_score = Column(Integer, nullable=False)
@@ -66,7 +66,7 @@ class RagAnswerFeedback(Base):
     __tablename__ = "rag_answer_feedback"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_name = Column(String(100), nullable=False, default="default_user")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     subject = Column(String(100), nullable=False)
     material_id = Column(Integer, nullable=True)
     question = Column(Text, nullable=False)
@@ -82,11 +82,11 @@ class RagAnswerFeedback(Base):
 class ExamAttempt(Base):
     __tablename__ = "exam_attempts"
     __table_args__ = (
-        Index("ix_exam_attempts_user_subject_created", "user_name", "subject", "created_at"),
+        Index("ix_exam_attempts_user_subject_created", "user_id", "subject", "created_at"),
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_name = Column(String(100), nullable=False, default="default_user")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     subject = Column(String(100), nullable=False)
     title = Column(String(255), nullable=False)
     total_questions = Column(Integer, nullable=False)
@@ -110,11 +110,11 @@ class ExamAttemptAnswer(Base):
 class StudyGoal(Base):
     __tablename__ = "study_goals"
     __table_args__ = (
-        Index("ix_study_goals_user_exam_date", "user_name", "exam_date"),
+        Index("ix_study_goals_user_exam_date", "user_id", "exam_date"),
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_name = Column(String(100), nullable=False, default="default_user")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     subject = Column(String(100), nullable=False)
     title = Column(String(255), nullable=False)
     target_score = Column(Integer, nullable=False)
@@ -125,11 +125,11 @@ class StudyGoal(Base):
 class StudyChecklistItem(Base):
     __tablename__ = "study_checklist_items"
     __table_args__ = (
-        Index("ix_checklist_user_goal_done", "user_name", "goal_id", "is_done"),
+        Index("ix_checklist_user_goal_done", "user_id", "goal_id", "is_done"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    user_name = Column(String(100), nullable=False, default="default_user")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     goal_id = Column(Integer, ForeignKey("study_goals.id"), nullable=False)
     subject = Column(String(100), nullable=False)
     title = Column(String(255), nullable=False)
@@ -143,11 +143,11 @@ class StudyChecklistItem(Base):
 class StudySession(Base):
     __tablename__ = "study_sessions"
     __table_args__ = (
-        Index("ix_study_sessions_user_subject_created", "user_name", "subject", "created_at"),
+        Index("ix_study_sessions_user_subject_created", "user_id", "subject", "created_at"),
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_name = Column(String(100), nullable=False, default="default_user")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     subject = Column(String(100), nullable=False)
     goal_id = Column(Integer, ForeignKey("study_goals.id"), nullable=True)
     checklist_item_id = Column(Integer, ForeignKey("study_checklist_items.id"), nullable=True)
@@ -161,11 +161,11 @@ class StudySession(Base):
 class SmartReviewQueueItem(Base):
     __tablename__ = "smart_review_queue_items"
     __table_args__ = (
-        Index("ix_review_queue_user_done_priority", "user_name", "is_done", "priority"),
+        Index("ix_review_queue_user_done_priority", "user_id", "is_done", "priority"),
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_name = Column(String(100), nullable=False, default="default_user")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     subject = Column(String(100), nullable=True)
     title = Column(String(255), nullable=False)
     reason = Column(Text, nullable=True)

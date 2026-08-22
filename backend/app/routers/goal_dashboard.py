@@ -20,7 +20,7 @@ def get_goal_dashboard(
     goal = (
         db.query(models.StudyGoal)
         .filter(models.StudyGoal.id == request.goal_id)
-        .filter(models.StudyGoal.user_name == current_user.user_name)
+        .filter(models.StudyGoal.user_id == current_user.id)
         .first()
     )
     
@@ -34,7 +34,7 @@ def get_goal_dashboard(
     
     checklist_items = (
         db.query(models.StudyChecklistItem)
-        .filter(models.StudyChecklistItem.user_name == current_user.user_name)
+        .filter(models.StudyChecklistItem.user_id == current_user.id)
         .filter(models.StudyChecklistItem.goal_id == goal.id)
         .all()
     )
@@ -56,7 +56,7 @@ def get_goal_dashboard(
     
     sessions = (
         db.query(models.StudySession)
-        .filter(models.StudySession.user_name == current_user.user_name)
+        .filter(models.StudySession.user_id == current_user.id)
         .filter(models.StudySession.goal_id == goal.id)
         .order_by(models.StudySession.created_at.desc())
         .all()
@@ -97,7 +97,7 @@ def get_goal_dashboard(
     
     attempts = (
         db.query(models.ExamAttempt)
-        .filter(models.ExamAttempt.user_name == current_user.user_name)
+        .filter(models.ExamAttempt.user_id == current_user.id)
         .filter(models.ExamAttempt.subject == goal.subject)
         .order_by(models.ExamAttempt.created_at.desc())
         .limit(10)

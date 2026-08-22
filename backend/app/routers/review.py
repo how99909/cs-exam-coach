@@ -15,14 +15,12 @@ def get_review_recommendations(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    user_name = current_user.user_name
-    
     results = (
         db.query(
             models.WrongAnswer.concept,
             func.count(models.WrongAnswer.id).label("wrong_count")
         )
-        .filter(models.WrongAnswer.user_name == user_name)
+        .filter(models.WrongAnswer.user_id == current_user.id)
         .filter(models.WrongAnswer.is_correct == False)
         .group_by(models.WrongAnswer.concept)
         .order_by(func.count(models.WrongAnswer.id).desc())
@@ -74,7 +72,7 @@ def get_study_plan(
             models.WrongAnswer.concept,
             func.count(models.WrongAnswer.id).label("wrong_count")
         )
-        .filter(models.WrongAnswer.user_name == user_name)
+        .filter(models.WrongAnswer.user_id == current_user.id)
         .filter(models.WrongAnswer.is_correct == False)
         .group_by(models.WrongAnswer.concept)
         .order_by(func.count(models.WrongAnswer.id).desc())

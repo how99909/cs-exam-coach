@@ -79,7 +79,7 @@ async def extract_pdf_text(
             }
             
         material = models.StudyMaterial(
-            user_name=current_user.user_name,
+            user_id=current_user.id,
             subject=subject,
             content=full_text,
         )

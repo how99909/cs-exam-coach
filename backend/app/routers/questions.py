@@ -23,7 +23,7 @@ def generate_questions(
     
     try:
         material = models.StudyMaterial(
-            user_name=current_user.user_name,
+            user_id=current_user.id,
             subject=request.subject,
             content=request.content,
         )

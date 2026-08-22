@@ -19,7 +19,7 @@ def generate_study_checklist(
 ):
     status_result = _get_study_goal_status(
         goal_id=request.goal_id,
-        user_name=current_user.user_name,
+        user_id=current_user.id,
         db=db,
     )
     
@@ -39,7 +39,7 @@ def generate_study_checklist(
     
     for item in generated_items:
         checklist_item = models.StudyChecklistItem(
-            user_name=current_user.user_name,
+            user_id=current_user.id,
             goal_id=request.goal_id,
             subject=goal["subject"],
             title=item.get("title", ""),
@@ -82,7 +82,7 @@ def list_study_checklist_items(
     current_user: models.User = Depends(get_current_user),
 ):
     query = db.query(models.StudyChecklistItem).filter(
-        models.StudyChecklistItem.user_name == current_user.user_name
+        models.StudyChecklistItem.user_id == current_user.id
     )
     
     if goal_id is not None:
@@ -136,7 +136,7 @@ def update_study_checklist_item(
     item = (
         db.query(models.StudyChecklistItem)
         .filter(models.StudyChecklistItem.id == item_id)
-        .filter(models.StudyChecklistItem.user_name == current_user.user_name)
+        .filter(models.StudyChecklistItem.user_id == current_user.id)
         .first()
     )
     

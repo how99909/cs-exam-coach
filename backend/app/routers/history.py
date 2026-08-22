@@ -19,7 +19,7 @@ def get_recent_questions(
             models.StudyMaterial, 
             models.Question.material_id == models.StudyMaterial.id,
         )
-        .filter(models.StudyMaterial.user_name == current_user.user_name)
+        .filter(models.StudyMaterial.user_id == current_user.id)
         .order_by(models.Question.created_at.desc())
         .limit(20)
         .all()
@@ -49,7 +49,7 @@ def get_recent_wrong_answers(
 ):
     wrong_answers = (
         db.query(models.WrongAnswer)
-        .filter(models.WrongAnswer.user_name == current_user.user_name)
+        .filter(models.WrongAnswer.user_id == current_user.id)
         .order_by(models.WrongAnswer.created_at.desc())
         .limit(20)
         .all()

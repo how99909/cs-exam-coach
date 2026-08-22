@@ -31,7 +31,7 @@ def create_question_feedback(
             models.Question.material_id == models.StudyMaterial.id,
         )
         .filter(models.Question.id == request.question_id)
-        .filter(models.StudyMaterial.user_name == current_user.user_name)
+        .filter(models.StudyMaterial.user_id == current_user.id)
         .first()
     )
     if question is None:
@@ -49,7 +49,7 @@ def create_question_feedback(
             return validation
         
     feedback = models.QuestionFeedback(
-        user_name=current_user.user_name,
+        user_id=current_user.id,
         question_id=request.question_id,
         quality_score=request.quality_score,
         explanation_score=request.explanation_score,
@@ -84,14 +84,14 @@ def get_question_feedback_summary(
             func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score"),
         )
         .filter(models.QuestionFeedback.question_id == question_id)
-        .filter(models.QuestionFeedback.user_name == current_user.user_name)
+        .filter(models.QuestionFeedback.user_id == current_user.id)
         .first()
     )
     
     comments = (
         db.query(models.QuestionFeedback.comment)
         .filter(models.QuestionFeedback.question_id == question_id)
-        .filter(models.QuestionFeedback.user_name == current_user.user_name)
+        .filter(models.QuestionFeedback.user_id == current_user.id)
         .filter(models.QuestionFeedback.comment.isnot(None))
         .order_by(models.QuestionFeedback.created_at.desc())
         .limit(5)
@@ -121,8 +121,6 @@ def get_feedback_summary(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    user_name = current_user.user_name
-    
     query = db.query(
         func.count(models.QuestionFeedback.id).label("feedback_count"),            
         func.avg(models.QuestionFeedback.quality_score).label("avg_quality_score"),
@@ -131,8 +129,8 @@ def get_feedback_summary(
         func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score"),
     )
     
-    if user_name:
-        query = query.filter(models.QuestionFeedback.user_name == user_name)
+    if current_user.id:
+        query = query.filter(models.QuestionFeedback.user_id == current_user.id)
     
     result = query.first()
     
@@ -166,7 +164,7 @@ def get_low_score_questions(
             func.avg(models.QuestionFeedback.exam_relevance_score).label("avg_exam_relevance_score"),
             func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score"),
         )
-        .filter(models.QuestionFeedback.user_name == current_user.user_name)
+        .filter(models.QuestionFeedback.user_id == current_user.id)
         .group_by(models.QuestionFeedback.question_id)
         .having(func.avg(models.QuestionFeedback.quality_score) <= threshold)
         .order_by(func.avg(models.QuestionFeedback.quality_score).asc())
@@ -202,7 +200,7 @@ def get_low_exam_relevance_questions(
             func.avg(models.QuestionFeedback.exam_relevance_score).label("avg_exam_relevance_score"),
             func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score"),
         )
-        .filter(models.QuestionFeedback.user_name == current_user.user_name)
+        .filter(models.QuestionFeedback.user_id == current_user.id)
         .group_by(models.QuestionFeedback.question_id)
         .having(func.avg(models.QuestionFeedback.exam_relevance_score) <= threshold)
         .order_by(func.avg(models.QuestionFeedback.exam_relevance_score).asc())
@@ -231,7 +229,7 @@ def get_recent_feedback_comments(
 ):
     comments = (
         db.query(models.QuestionFeedback)
-        .filter(models.QuestionFeedback.user_name == current_user.user_name)
+        .filter(models.QuestionFeedback.user_id == current_user.id)
         .filter(models.QuestionFeedback.comment.isnot(None))
         .filter(models.QuestionFeedback.comment != "")
         .order_by(models.QuestionFeedback.created_at.desc())
@@ -268,7 +266,7 @@ def get_admin_feedback_dashboard(
             func.avg(models.QuestionFeedback.exam_relevance_score).label("avg_exam_relevance_score"),
             func.avg(models.QuestionFeedback.difficulty_match_score).label("avg_difficulty_match_score")
         )
-        .filter(models.QuestionFeedback.user_name == current_user.user_name)
+        .filter(models.QuestionFeedback.user_id == current_user.id)
         .first()
     )
     

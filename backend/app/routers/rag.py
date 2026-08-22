@@ -17,7 +17,7 @@ def index_document(
     material = (
         db.query(models.StudyMaterial)
         .filter(models.StudyMaterial.id == request.material_id)
-        .filter(models.StudyMaterial.user_name == current_user.user_name)
+        .filter(models.StudyMaterial.user_id == current_user.id)
         .filter(models.StudyMaterial.subject == request.subject)
         .first()
     )
@@ -72,7 +72,7 @@ def ask_document(
             db.query(models.StudyMaterial)
             .filter(models.StudyMaterial.id == request.material_id)
             .filter(
-                models.StudyMaterial.user_name == current_user.user_name
+                models.StudyMaterial.user_id == current_user.id
             )
             .filter(models.StudyMaterial.subject == request.subject)
             .first()
@@ -122,7 +122,7 @@ def delete_document(
         db.query(models.StudyMaterial)
         .filter(models.StudyMaterial.id == request.material_id)
         .filter(
-            models.StudyMaterial.user_name == current_user.user_name
+            models.StudyMaterial.user_id == current_user.id
         )
         .filter(models.StudyMaterial.subject == request.subject)
         .first()
