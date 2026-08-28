@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Date, Index
 
 from app.database import Base
+from app.time_utils import utc_now
 
 class StudyMaterial(Base):
     __tablename__ = "study_materials"
@@ -11,10 +10,10 @@ class StudyMaterial(Base):
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     subject = Column(String(100), nullable=False)
     content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     
 class Question(Base):
@@ -28,7 +27,7 @@ class Question(Base):
     concept = Column(String(100), nullable=True)
     question_type = Column(String(50), nullable=False)
     difficulty = Column(String(50), nullable=False, default="medium")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     
     
 class WrongAnswer(Base):
@@ -38,35 +37,41 @@ class WrongAnswer(Base):
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     question_id = Column(Integer, nullable=False)
     user_answer = Column(Text, nullable=False)
     correct_answer = Column(Text, nullable=False)
     concept = Column(String(100), nullable=True)
     feedback = Column(Text, nullable=True)
     is_correct = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     
     
 class QuestionFeedback(Base):
     __tablename__ = "question_feedback"
+    __table_args__ = (
+        Index("ix_question_feedback_user_question", "user_id", "question_id"),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     question_id = Column(Integer, nullable=False)
     quality_score = Column(Integer, nullable=False)
     explanation_score = Column(Integer, nullable=False)
     exam_relevance_score = Column(Integer, nullable=False)
     difficulty_match_score = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     
     
 class RagAnswerFeedback(Base):
     __tablename__ = "rag_answer_feedback"
+    __table_args__ = (
+        Index("ix_rag_feedback_user_subject_created", "user_id", "subject", "created_at"),
+    )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     subject = Column(String(100), nullable=False)
     material_id = Column(Integer, nullable=True)
     question = Column(Text, nullable=False)
@@ -76,7 +81,7 @@ class RagAnswerFeedback(Base):
     source_relevance_score = Column(Integer, nullable=False)
     helpfulness_score = Column(Integer, nullable=False)
     comment = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
 
 class ExamAttempt(Base):
@@ -86,13 +91,13 @@ class ExamAttempt(Base):
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     subject = Column(String(100), nullable=False)
     title = Column(String(255), nullable=False)
     total_questions = Column(Integer, nullable=False)
     correct_count = Column(Integer, nullable=False, default=0)
     score = Column(Integer, nullable=False, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     
     
 class ExamAttemptAnswer(Base):
@@ -104,7 +109,7 @@ class ExamAttemptAnswer(Base):
     user_answer = Column(Text, nullable=False)
     is_correct = Column(Boolean, nullable=False, default=False)
     feedback = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     
     
 class StudyGoal(Base):
@@ -114,12 +119,12 @@ class StudyGoal(Base):
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     subject = Column(String(100), nullable=False)
     title = Column(String(255), nullable=False)
     target_score = Column(Integer, nullable=False)
     exam_date = Column(Date, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
 
 class StudyChecklistItem(Base):
@@ -129,14 +134,14 @@ class StudyChecklistItem(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     goal_id = Column(Integer, ForeignKey("study_goals.id"), nullable=False)
     subject = Column(String(100), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     priority = Column(Integer, nullable=False, default=1)
     is_done = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     completed_at = Column(DateTime, nullable=True)
     
     
@@ -147,7 +152,7 @@ class StudySession(Base):
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     subject = Column(String(100), nullable=False)
     goal_id = Column(Integer, ForeignKey("study_goals.id"), nullable=True)
     checklist_item_id = Column(Integer, ForeignKey("study_checklist_items.id"), nullable=True)
@@ -155,7 +160,7 @@ class StudySession(Base):
     content = Column(Text, nullable=False)
     reflection = Column(Text, nullable=True)
     focus_score = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
 
 class SmartReviewQueueItem(Base):
@@ -165,7 +170,7 @@ class SmartReviewQueueItem(Base):
     )
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     subject = Column(String(100), nullable=True)
     title = Column(String(255), nullable=False)
     reason = Column(Text, nullable=True)
@@ -174,7 +179,7 @@ class SmartReviewQueueItem(Base):
     priority = Column(Integer, nullable=False, default=1)
     source_type = Column(String(100), nullable=True)
     is_done = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     completed_at = Column(DateTime, nullable=True)
 
 
@@ -185,4 +190,4 @@ class User(Base):
     user_name = Column(String(100), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=True, index=True)
     hashed_password = Column(String(255), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)

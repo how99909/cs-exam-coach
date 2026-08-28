@@ -13,7 +13,7 @@ def generate_rag_based_questions(
     request: schemas.RagQuestionGenerateRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-):
+):      
     chunks = rag_service.get_document_chunks_for_question_generation(
         user_name=current_user.user_name,
         subject=request.subject,
@@ -34,26 +34,27 @@ def generate_rag_based_questions(
         difficulty=request.difficulty,
         count=request.count,
     )
-    
-    saved_questions = []
-    
-    target_material_id = request.material_id or chunks[0]["metadata"].get("material_id")
-    
+
+    target_material_id = (
+        request.material_id
+        or chunks[0]["metadata"].get("material_id")
+    )
+
     material = (
         db.query(models.StudyMaterial)
         .filter(models.StudyMaterial.id == target_material_id)
-        .filter(
-            models.StudyMaterial.user_id == current_user.id
-        )
+        .filter(models.StudyMaterial.user_id == current_user.id)
         .filter(models.StudyMaterial.subject == request.subject)
         .first()
     )
-    
+
     if material is None:
         raise HTTPException(
             status_code=404,
             detail="연결할 StudyMaterial을 찾지 못했습니다.",
         )
+    
+    saved_questions = []
         
     for item in generated_questions:
         question = models.Question(

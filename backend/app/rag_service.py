@@ -365,7 +365,9 @@ def list_indexed_documents(
             include=["metadatas"],
         )
         
-    metadatas = results.get("metadatas", [])
+    metadatas = results.get("metadatas")
+    if metadatas is None:
+        metadatas = results.get("metadata", [])
     
     document_map = {}
     

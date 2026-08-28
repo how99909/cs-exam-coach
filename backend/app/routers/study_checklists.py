@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -7,6 +5,7 @@ from app import ai_service, models, schemas
 from app.database import get_db
 from app.routers.study_goals import _get_study_goal_status
 from app.dependencies import get_current_user
+from app.time_utils import utc_now
 
 router = APIRouter(prefix="/study-checklists", tags=["study-checklists"])
 
@@ -147,7 +146,7 @@ def update_study_checklist_item(
         )
         
     item.is_done = request.is_done
-    item.completed_at = datetime.utcnow() if request.is_done else None
+    item.completed_at = utc_now() if request.is_done else None
     
     db.commit()
     db.refresh(item)

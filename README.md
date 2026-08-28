@@ -2,9 +2,9 @@
 
 컴퓨터공학 전공 시험 대비를 위한 AI 문제 생성·채점·복습 관리 서비스입니다.
 
-- 제품 버전: **v4.4**
-- API 버전: **0.4.4**
-- 최근 주요 변경: 사용자 소유 데이터를 `users.id` 외래키 기준으로 정규화하고 자료·문제 관계 무결성 강화
+- 제품 버전: **v4.5**
+- API 버전: **0.4.5**
+- 최근 주요 변경: pytest 기반 백엔드 테스트 모음과 GitHub Actions CI 추가
 
 ## 1. 프로젝트 소개
 
@@ -33,6 +33,16 @@ CS Exam Coach는 사용자가 직접 입력하거나 PDF에서 추출한 학습 
 - 문제의 `material_id`를 학습 자료 외래키로 연결해 존재하지 않는 자료를 참조하는 문제 방지
 - 사용자·과목·날짜 및 사용자·완료 상태·우선순위 조합 인덱스로 주요 대시보드와 이력 조회 지원
 - JWT의 `sub`로 사용자를 조회한 뒤 해당 사용자의 내부 ID로 데이터 저장·조회 및 리소스 소유권 검증
+
+### 테스트와 지속적 통합
+
+- pytest fixture와 메모리 SQLite를 이용한 독립적인 단위·API 테스트 환경
+- 인증 서비스, 회원가입·로그인, 사용자 간 접근 차단과 리소스 소유권 테스트
+- 문제 생성·채점·응시·학습 흐름 및 RAG API·서비스 회귀 테스트
+- 실제 PostgreSQL 16에서 Alembic 전체 upgrade와 스키마·외래키·인덱스를 확인하는 마이그레이션 테스트
+- GitHub의 `main` 브랜치 push 및 pull request마다 백엔드 테스트 자동 실행
+- 일반 테스트와 PostgreSQL 마이그레이션 테스트를 별도 CI job으로 분리
+- pytest-cov를 이용한 백엔드 애플리케이션 커버리지와 누락 라인 출력
 
 ### 문제 생성과 채점
 
@@ -180,32 +190,83 @@ docker compose run --rm backend alembic upgrade head
 
 ## 6. 테스트
 
-현재 회귀 및 인증 통합 테스트는 Python 표준 `unittest`로 실행합니다.
+백엔드 테스트는 `pytest`로 실행하며, 일반 단위·API 테스트와 실제 PostgreSQL이 필요한 마이그레이션 테스트를 marker로 분리합니다.
+
+### 테스트 의존성 설치
+
+```bash
+cd backend
+python -m pip install -r requirements.txt -r requirements-dev.txt
+```
+
+### 단위 및 API 테스트
 
 PowerShell:
 
 ```powershell
-$env:PYTHONPATH="backend"
-python -m unittest discover -s backend/tests -v
+Set-Location backend
+pytest -m "not postgres" --cov=app --cov-report=term-missing
 ```
 
 Bash:
 
 ```bash
-PYTHONPATH=backend python -m unittest discover -s backend/tests -v
+cd backend
+pytest -m "not postgres" --cov=app --cov-report=term-missing
 ```
+
+일반 테스트는 메모리 SQLite를 사용하며 테스트마다 스키마를 초기화합니다. 외부 OpenAI와 Chroma 동작은 테스트 대역을 사용하므로 별도 API key나 Chroma 서버가 필요하지 않습니다.
+
+### PostgreSQL 및 Alembic 테스트
+
+로컬 테스트 DB를 시작합니다.
+
+```bash
+docker compose -f docker-compose.test.yml up -d
+```
+
+테스트 DB 주소를 지정한 뒤 PostgreSQL marker만 실행합니다.
+
+PowerShell:
+
+```powershell
+Set-Location backend
+$env:TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5433/cs_exam_coach_test"
+pytest -m postgres -v
+```
+
+Bash:
+
+```bash
+cd backend
+TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5433/cs_exam_coach_test pytest -m postgres -v
+```
+
+테스트가 끝나면 다음 명령으로 테스트 DB 컨테이너를 종료합니다.
+
+```bash
+docker compose -f docker-compose.test.yml down
+```
+
+### GitHub Actions CI
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml)은 `main` 브랜치의 push와 pull request에서 다음 job을 실행합니다.
+
+| Job | 환경 | 실행 내용 |
+| --- | --- | --- |
+| `unit-tests` | Ubuntu, Python 3.11 | PostgreSQL marker를 제외한 테스트 및 `app` 커버리지 출력 |
+| `postgres-tests` | Ubuntu, Python 3.11, PostgreSQL 16 | 실제 PostgreSQL에서 Alembic 마이그레이션 테스트 실행 |
 
 ## 7. API 요약
 
 요청 필드, 허용 범위, 응답 모델의 최신 정의는 실행 중인 [Swagger UI](http://localhost:8000/docs)를 기준으로 확인하세요.
 
-### v0.4.4 API 변경 사항
+### v0.4.5 API 변경 사항
 
-- API 경로와 공개 요청 형식은 v0.4.3과 호환됩니다. 정규화된 `user_id`는 서버 내부 식별자이므로 학습 API 요청에 추가하지 않습니다.
-- 서버는 JWT의 `sub` claim으로 `users` 레코드를 찾고, 해당 `users.id`를 사용자 소유 데이터의 저장·조회·집계 기준으로 사용합니다.
-- 학습 자료, 오답, 문제·RAG 평가, 응시 기록, 학습 목표, 체크리스트, 학습 세션, 스마트 복습 큐의 소유권이 사용자 외래키로 연결됩니다.
-- 문제 생성·조회·채점, 시험지 생성 및 RAG 관련 `material_id` 접근은 문제→학습 자료→사용자 관계를 따라 현재 사용자의 소유권을 확인합니다.
-- 다른 사용자의 ID 또는 관계가 유효하지 않은 ID를 전달하면 해당 리소스를 노출하지 않고 주로 `404 Not Found`를 반환합니다.
+- 공개 API 경로와 요청 형식은 v0.4.4와 호환됩니다.
+- 테스트 안정성을 위해 애플리케이션의 UTC 날짜·시간 계산을 공통 유틸리티로 정리했습니다.
+- RAG 문서 목록 조회는 Chroma 응답의 `metadatas`와 호환 metadata 형식을 모두 처리합니다.
+- 학습 목표 인덱스 이름을 모델과 Alembic 이력에서 일관되게 정리하는 후속 마이그레이션을 포함합니다.
 
 ### 공통 인증 및 사용자 범위
 
@@ -460,7 +521,9 @@ Authorization: Bearer <access_token>
 
 - API는 동기 방식으로 AI, PDF 및 일부 DB 작업을 처리하므로 큰 요청이나 동시 사용자가 많을 때 지연될 수 있습니다.
 - 요청 속도 제한, 백그라운드 작업 큐, 중앙 로그, 모니터링과 장애 알림이 없습니다.
-- 현재 자동 테스트는 핵심 회귀 사례 중심이며 실제 PostgreSQL·Chroma·OpenAI를 연결한 통합 테스트와 브라우저 E2E 테스트는 없습니다.
+- 자동 테스트는 인증·권한, 핵심 학습 흐름, RAG 서비스와 실제 PostgreSQL/Alembic 마이그레이션을 다루지만 실제 OpenAI·Chroma 서버를 함께 연결한 통합 테스트와 브라우저 E2E 테스트는 없습니다.
+- CI는 커버리지 보고서를 터미널에 출력하지만 최소 커버리지 기준을 강제하거나 결과물을 artifact로 보관하지 않습니다.
+- 현재 GitHub Actions는 백엔드만 검사하며 프론트엔드 정적 분석·테스트와 Docker 이미지 빌드는 포함하지 않습니다.
 - 날짜·시간은 timezone 정보가 없는 UTC 값으로 저장되므로 사용자별 시간대 표시는 별도 처리가 필요합니다.
 
 ## 9. 프로젝트 구조
@@ -480,9 +543,13 @@ cs-exam-coach/
 │  │  ├─ schemas.py         # Pydantic request/response schema
 │  │  ├─ database.py        # DB engine과 session
 │  │  └─ main.py            # FastAPI 진입점
-│  └─ tests/                # 회귀 테스트
+│  ├─ tests/                # 단위·API·PostgreSQL migration 테스트
+│  ├─ pytest.ini            # pytest 경로, 옵션과 marker 설정
+│  └─ requirements-dev.txt  # 테스트·커버리지 의존성
 ├─ frontend/
 │  └─ app.py                # Streamlit UI
+├─ .github/workflows/ci.yml # 백엔드 GitHub Actions CI
+├─ docker-compose.test.yml  # PostgreSQL 16 테스트 DB
 ├─ docs/images/             # README 화면 이미지
 └─ docker-compose.yml
 ```

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app import ai_service, models, schemas
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.time_utils import utc_now
 
 router = APIRouter(prefix="/weekly-reports", tags=["weekly-reports"])
 
@@ -23,7 +24,7 @@ def generate_weekly_report(
             detail="days는 1 이상 31 이하이어야 합니다.",
         )
         
-    end_at = datetime.utcnow()
+    end_at = utc_now()
     start_at = end_at - timedelta(days=request.days)
     
     session_query = db.query(models.StudySession).filter(

@@ -12,3 +12,6 @@ tiktoken==0.13.0
 alembic==1.19.0
 bcrypt==5.0.0
 python-jose[cryptography]
+pytest
+pytest-cov
+httpx2

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app import ai_service, models, schemas
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.time_utils import utc_now
 
 router = APIRouter(prefix="/smart-review", tags=["smart-review"])
 
@@ -109,7 +110,7 @@ def save_smart_review_queue(
         for item in pending_checklists
     ]
     
-    since = datetime.utcnow() - timedelta(days=7)
+    since = utc_now() - timedelta(days=7)
     
     session_query = (
         db.query(models.StudySession)
@@ -308,7 +309,7 @@ def update_smart_review_queue_item(
         )
         
     item.is_done = request.is_done
-    item.completed_at = datetime.utcnow() if request.is_done else None
+    item.completed_at = utc_now() if request.is_done else None
     
     db.commit()
     db.refresh(item)

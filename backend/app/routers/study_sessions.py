@@ -79,7 +79,6 @@ def create_study_session(
         "message": "학습 세션이 기록되었습니다.",
         "session": {
             "id": session.id,
-            "user_name": session.user_name,
             "subject": session.subject,
             "goal_id": session.goal_id,
             "checklist_item_id": session.checklist_item_id,

@@ -1,90 +1,67 @@
-import unittest
+import pytest
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from app.database import get_db
-from app.main import APP_VERSION
-from app.routers import exam_attempts
-from app.schemas import QuestionGenerateRequest, StudySessionCreateRequest
-from app.dependencies import get_current_user
+from app.schemas import (
+    QuestionGenerateRequest,
+    StudySessionCreateRequest,
+)
 
 
-class EmptyQuery:
-    def filter(self, *args, **kwargs):
-        return self
-
-    def order_by(self, *args, **kwargs):
-        return self
-
-    def limit(self, *args, **kwargs):
-        return self
-
-    def all(self):
-        return []
-
-
-class EmptyDatabase:
-    def query(self, *args, **kwargs):
-        return EmptyQuery()
-
-
-def empty_database_override():
-    yield EmptyDatabase()
-
-
-class FakeUser:
-    id = 1
-    user_name = "tester"
-    email = "tester@example.com"
+def test_analytics_is_not_captured_as_attempt_id(
+    auth_client,
+):
+    response = auth_client.get(
+        "/exam-attempts/analytics",
+    )
     
+    assert response.status_code == 200
+    assert response.json()["attempt_count"] == 0
+
+
+def test_query_limit_is_bounded(
+    auth_client,
+):
+    response = auth_client.get(
+        "/exam-attempts/history",
+        params={"limit": 0},
+    )
     
-def current_user_override():
-    return FakeUser()
+    assert response.status_code == 422
 
-class ApiRegressionTests(unittest.TestCase):
-    def setUp(self):
-        app = FastAPI(version=APP_VERSION)
-        app.include_router(exam_attempts.router)
-        app.dependency_overrides[get_db] = empty_database_override
-        app.dependency_overrides[get_current_user] = (
-            current_user_override
+
+def test_question_count_is_bounded():
+    with pytest.raises(ValidationError):
+        QuestionGenerateRequest(
+            subject="algorithm",
+            content="content",
+            count=0,
         )
-        self.client = TestClient(app)
-
-    def test_analytics_is_not_captured_as_attempt_id(self):
-        response = self.client.get(
-            "/exam-attempts/analytics",
-            params={"user_name": "tester"},
+        
+        
+def test_study_session_values_are_bounded():
+    with pytest.raises(ValidationError):
+        StudySessionCreateRequest(
+            subject="algorithm",
+            duration_minutes=0,
+            content="review",
+            focus_score=6,
         )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["attempt_count"], 0)
-
-    def test_query_limit_is_bounded(self):
-        response = self.client.get(
-            "/exam-attempts/history",
-            params={"user_name": "tester", "limit": 0},
-        )
-
-        self.assertEqual(response.status_code, 422)
-
-
-class SchemaValidationTests(unittest.TestCase):
-    def test_question_count_is_bounded(self):
-        with self.assertRaises(ValidationError):
-            QuestionGenerateRequest(subject="os", content="content", count=0)
-
-    def test_study_session_values_are_bounded(self):
-        with self.assertRaises(ValidationError):
-            StudySessionCreateRequest(
-                subject="os",
-                duration_minutes=0,
-                content="review",
-                focus_score=6,
-            )
-
-
-if __name__ == "__main__":
-    unittest.main()
+        
+        
+def test_register_rejects_password_over_72_utf8_bytes(client):
+    password = "가" * 25
+    
+    response = client.post(
+        "/auth/register",
+        json={
+            "user_name": "student1",
+            "email": "student1@example.com",
+            "password": password,
+        },
+    )
+    
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "비밀번호는 UTF-8 기준 72바이트 이하여야 합니다."
+    )

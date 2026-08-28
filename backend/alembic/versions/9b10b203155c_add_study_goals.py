@@ -28,7 +28,10 @@ def upgrade() -> None:
     sa.Column('title', sa.String(length=255), nullable=False),
     sa.Column('target_score', sa.Integer(), nullable=False),
     sa.Column('exam_date', sa.Date(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
+    # This historical revision originally introduced the misspelled column.
+    # Revision 044540405e3c renames it by adding created_at and dropping this
+    # column, so the names must remain consistent for clean database upgrades.
+    sa.Column('ccreated_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_study_goals_id'), 'study_goals', ['id'], unique=False)

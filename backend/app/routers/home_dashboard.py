@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app import ai_service, models, schemas
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.time_utils import utc_now
 
 router = APIRouter(prefix="/home-dashboard", tags=["home-dashboard"])
 
@@ -18,7 +19,7 @@ def get_home_dashboard(
     current_user: models.User = Depends(get_current_user),
 ):
     user_name = current_user.user_name
-    since = datetime.utcnow() - timedelta(days=7)
+    since = utc_now() - timedelta(days=7)
     
     goal_query = db.query(models.StudyGoal).filter(
         models.StudyGoal.user_id == current_user.id

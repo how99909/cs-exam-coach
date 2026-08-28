@@ -150,7 +150,7 @@ def _get_study_goal_status(
             models.ExamAttempt,
             models.ExamAttempt.id == models.ExamAttemptAnswer.attempt_id,
         )
-        .filter(models.ExamAttempt.user_name == user_id)
+        .filter(models.ExamAttempt.user_id == user_id)
         .filter(models.ExamAttempt.subject == goal.subject)
         .filter(models.ExamAttemptAnswer.is_correct == False)
         .filter(models.Question.concept.isnot(None))
