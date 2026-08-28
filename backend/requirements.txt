@@ -14,4 +14,4 @@ bcrypt==5.0.0
 python-jose[cryptography]
 pytest
 pytest-cov
-httpx2
+httpx
