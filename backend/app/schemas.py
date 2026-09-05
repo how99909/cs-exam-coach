@@ -42,11 +42,11 @@ class ReviewItem(BaseModel):
 
 
 class QuestionFeedbackCreate(BaseModel):
-    question_id: int
-    quality_score: int = Field(ge=1, le=5)
-    explanation_score: int = Field(ge=1, le=5)
-    exam_relevance_score: int = Field(ge=1, le=5)
-    difficulty_match_score: int = Field(ge=1, le=5)
+    question_id: int = Field(gt=0, strict=True)
+    quality_score: int = Field(ge=1, le=5, strict=True)
+    explanation_score: int = Field(ge=1, le=5, strict=True)
+    exam_relevance_score: int = Field(ge=1, le=5, strict=True)
+    difficulty_match_score: int = Field(ge=1, le=5, strict=True)
     comment: str | None = None
     
 
@@ -84,14 +84,14 @@ class RagDeleteRequest(BaseModel):
     
     
 class RagAnswerFeedbackCreate(BaseModel):
-    subject: str
-    material_id: int | None = None
-    question: str
-    answer: str
-    accuracy_score: int = Field(ge=1, le=5)
-    grounding_score: int = Field(ge=1, le=5)
-    source_relevance_score: int = Field(ge=1, le=5)
-    helpfulness_score: int = Field(ge=1, le=5)
+    subject: str = Field(min_length=1, max_length=100)
+    material_id: int | None = Field(default=None, gt=0, strict=True)
+    question: str = Field(min_length=1)
+    answer: str = Field(min_length=1)
+    accuracy_score: int = Field(ge=1, le=5, strict=True)
+    grounding_score: int = Field(ge=1, le=5, strict=True)
+    source_relevance_score: int = Field(ge=1, le=5, strict=True)
+    helpfulness_score: int = Field(ge=1, le=5, strict=True)
     comment: str | None = None
     
     
@@ -115,9 +115,13 @@ class WeaknessRagQuestionRequest(BaseModel):
 
 
 class ExamPaperGenerateRequest(BaseModel):
-    subject: str
+    subject: str = Field(min_length=1, max_length=100)
     question_ids: list[int] = Field(min_length=1, max_length=100)
-    title: str = "CS Exam Coach Practice Test"
+    title: str = Field(
+        default="CS Exam Coach Practice Test",
+        min_length=1,
+        max_length=255,
+    )
     include_answers: bool = False
     include_explanations: bool = False
 
@@ -179,7 +183,7 @@ class GoalDashboardRequest(BaseModel):
 
 class SmartReviewQueueRequest(BaseModel):
     subject: str | None = None
-    limit: int = Field(default=5, ge=1, le=50)
+    limit: int = Field(default=5, ge=1, le=10)
 
 
 class SmartReviewQueueUpdateRequest(BaseModel):

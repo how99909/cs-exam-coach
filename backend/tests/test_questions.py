@@ -1,4 +1,5 @@
-from app import ai_service, models
+from app import models
+from app.ai import question_ai
 
 
 def test_generate_questions_saves_material_and_questions(
@@ -11,7 +12,7 @@ def test_generate_questions_saves_material_and_questions(
     auth_as(user_a)
     
     monkeypatch.setattr(
-        ai_service,
+        question_ai,
         "generate_questions",
         lambda **kwargs: [
             {

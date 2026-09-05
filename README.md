@@ -2,9 +2,9 @@
 
 컴퓨터공학 전공 시험 대비를 위한 AI 문제 생성·채점·복습 관리 서비스입니다.
 
-- 제품 버전: **v4.5**
-- API 버전: **0.4.5**
-- 최근 주요 변경: pytest 기반 백엔드 테스트 모음과 GitHub Actions CI 추가
+- 제품 버전: **v4.6**
+- API 버전: **0.4.6**
+- 최근 주요 변경: 백엔드를 router·service·AI 도메인 모듈로 분리하고 입력 검증 및 서비스 테스트 강화
 
 ## 1. 프로젝트 소개
 
@@ -38,11 +38,20 @@ CS Exam Coach는 사용자가 직접 입력하거나 PDF에서 추출한 학습 
 
 - pytest fixture와 메모리 SQLite를 이용한 독립적인 단위·API 테스트 환경
 - 인증 서비스, 회원가입·로그인, 사용자 간 접근 차단과 리소스 소유권 테스트
-- 문제 생성·채점·응시·학습 흐름 및 RAG API·서비스 회귀 테스트
+- 문제 생성·채점·응시·학습 흐름, RAG API 및 도메인 service 단위 테스트
 - 실제 PostgreSQL 16에서 Alembic 전체 upgrade와 스키마·외래키·인덱스를 확인하는 마이그레이션 테스트
 - GitHub의 `main` 브랜치 push 및 pull request마다 백엔드 테스트 자동 실행
 - 일반 테스트와 PostgreSQL 마이그레이션 테스트를 별도 CI job으로 분리
 - pytest-cov를 이용한 백엔드 애플리케이션 커버리지와 누락 라인 출력
+
+### 백엔드 모듈 구조
+
+- FastAPI router는 요청 검증, 인증 사용자 전달, HTTP 응답과 예외 변환을 담당
+- service 계층은 문제·채점·시험·피드백·학습·분석·RAG의 비즈니스 규칙과 데이터 접근을 담당
+- AI 계층은 OpenAI client와 문제 생성, 채점, 추천, 리포트, 대시보드 프롬프트를 도메인별로 분리
+- 공통 service 예외로 잘못된 요청, 리소스 없음, AI 응답 오류를 구분
+- 지표 계산을 공통 analytics service로 모아 홈·목표 대시보드, 리포트와 복습 기능에서 재사용
+- 기존 단일 `ai_service.py`와 RAG 피드백 CRUD 모듈의 책임을 세부 모듈로 이전
 
 ### 문제 생성과 채점
 
@@ -97,9 +106,12 @@ CS Exam Coach는 사용자가 직접 입력하거나 PDF에서 추출한 학습 
 Streamlit Frontend (:8501)
   ↓
 FastAPI Backend (:8000)
-  ├─ PostgreSQL (:5432) — 문제, 오답, 응시 및 학습 기록
-  ├─ Chroma (:8001)     — 문서 chunk와 embedding
-  └─ OpenAI API         — 생성, 채점, 리포트 및 embedding
+  ├─ Routers             — HTTP 요청·응답, 인증, 오류 변환
+  ├─ Services            — 비즈니스 규칙, 데이터 접근, 분석
+  ├─ AI modules          — 생성, 채점, 추천, 리포트 프롬프트
+  ├─ PostgreSQL (:5432)  — 문제, 오답, 응시 및 학습 기록
+  ├─ Chroma (:8001)      — 문서 chunk와 embedding
+  └─ OpenAI API          — 생성, 채점, 리포트 및 embedding
 ```
 
 | 영역 | 기술 |
@@ -261,12 +273,15 @@ docker compose -f docker-compose.test.yml down
 
 요청 필드, 허용 범위, 응답 모델의 최신 정의는 실행 중인 [Swagger UI](http://localhost:8000/docs)를 기준으로 확인하세요.
 
-### v0.4.5 API 변경 사항
+### v0.4.6 API 변경 사항
 
-- 공개 API 경로와 요청 형식은 v0.4.4와 호환됩니다.
-- 테스트 안정성을 위해 애플리케이션의 UTC 날짜·시간 계산을 공통 유틸리티로 정리했습니다.
-- RAG 문서 목록 조회는 Chroma 응답의 `metadatas`와 호환 metadata 형식을 모두 처리합니다.
-- 학습 목표 인덱스 이름을 모델과 Alembic 이력에서 일관되게 정리하는 후속 마이그레이션을 포함합니다.
+- 기존 API 경로와 성공 응답의 주요 데이터 구조는 유지됩니다. 내부 처리는 router에서 도메인 service와 AI 모듈로 위임합니다.
+- service의 잘못된 요청은 주로 `400 Bad Request`, 소유하지 않았거나 존재하지 않는 리소스는 `404 Not Found`로 router에서 변환합니다. 일부 AI 응답 형식 오류는 `502 Bad Gateway`, 예상하지 못한 RAG 문제 생성 오류는 `500 Internal Server Error`를 반환합니다.
+- `POST /materials/extract-pdf`의 파일 형식·페이지 범위·텍스트 추출 실패는 성공 상태의 오류 객체 대신 `400 Bad Request`로 반환됩니다.
+- 문제 평가의 `question_id`와 점수, RAG 평가의 `material_id`와 점수는 boolean·문자열을 정수로 자동 변환하지 않는 엄격한 정수 검증을 적용합니다.
+- RAG 평가의 `subject`, `question`, `answer`는 빈 문자열을 허용하지 않으며 `subject`는 최대 100자입니다.
+- 시험지 생성의 `subject`와 `title`은 빈 문자열을 허용하지 않으며 각각 최대 100자, 255자입니다.
+- 스마트 복습 큐의 `limit` 허용 범위는 1~10입니다.
 
 ### 공통 인증 및 사용자 범위
 
@@ -524,6 +539,8 @@ Authorization: Bearer <access_token>
 - 자동 테스트는 인증·권한, 핵심 학습 흐름, RAG 서비스와 실제 PostgreSQL/Alembic 마이그레이션을 다루지만 실제 OpenAI·Chroma 서버를 함께 연결한 통합 테스트와 브라우저 E2E 테스트는 없습니다.
 - CI는 커버리지 보고서를 터미널에 출력하지만 최소 커버리지 기준을 강제하거나 결과물을 artifact로 보관하지 않습니다.
 - 현재 GitHub Actions는 백엔드만 검사하며 프론트엔드 정적 분석·테스트와 Docker 이미지 빌드는 포함하지 않습니다.
+- service 계층은 router에서 분리되었지만 SQLAlchemy session, ORM model 및 일부 외부 서비스 모듈에 직접 의존하므로 독립 배포 가능한 별도 서비스는 아닙니다.
+- HTTP 오류 변환은 각 router가 담당하므로 새로운 service 예외를 추가할 때 해당 router의 상태 코드 매핑도 함께 갱신해야 합니다.
 - 날짜·시간은 timezone 정보가 없는 UTC 값으로 저장되므로 사용자별 시간대 표시는 별도 처리가 필요합니다.
 
 ## 9. 프로젝트 구조
@@ -533,17 +550,24 @@ cs-exam-coach/
 ├─ backend/
 │  ├─ alembic/              # DB migration
 │  ├─ app/
+│  │  ├─ ai/                 # OpenAI client와 도메인별 생성·채점 모듈
 │  │  ├─ core/config.py     # 환경 변수와 모델 설정
-│  │  ├─ routers/           # FastAPI endpoint
+│  │  ├─ routers/           # FastAPI endpoint와 HTTP 예외 변환
+│  │  ├─ services/          # 비즈니스 규칙과 데이터 접근
+│  │  │  ├─ analytics/      # 지표, 대시보드와 리포트
+│  │  │  ├─ feedback/       # 문제 및 RAG 평가
+│  │  │  ├─ rag/            # RAG 문제 생성
+│  │  │  ├─ recommendation/ # 스마트 복습 추천
+│  │  │  └─ study/          # 목표, 체크리스트와 학습 세션
 │  │  ├─ auth_service.py    # 비밀번호 해시와 JWT 생성·검증
 │  │  ├─ dependencies.py    # 현재 사용자 인증 의존성
-│  │  ├─ ai_service.py      # AI 생성·채점·리포트
 │  │  ├─ rag_service.py     # Chroma 인덱싱·검색·RAG
+│  │  ├─ time_utils.py      # 공통 UTC 시간 생성
 │  │  ├─ models.py          # SQLAlchemy model
 │  │  ├─ schemas.py         # Pydantic request/response schema
 │  │  ├─ database.py        # DB engine과 session
 │  │  └─ main.py            # FastAPI 진입점
-│  ├─ tests/                # 단위·API·PostgreSQL migration 테스트
+│  ├─ tests/                # router·service·API·PostgreSQL migration 테스트
 │  ├─ pytest.ini            # pytest 경로, 옵션과 marker 설정
 │  └─ requirements-dev.txt  # 테스트·커버리지 의존성
 ├─ frontend/

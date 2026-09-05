@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app import ai_service, models, rag_service, schemas
+from app import models, schemas
+from app.services.rag import question_service
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.services.exceptions import ResourceNotFoundError
 
 router = APIRouter(prefix="/rag-questions", tags=["rag-questions"])
 
@@ -14,80 +16,31 @@ def generate_rag_based_questions(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):      
-    chunks = rag_service.get_document_chunks_for_question_generation(
-        user_name=current_user.user_name,
-        subject=request.subject,
-        material_id=request.material_id,
-        limit=request.top_k,
-    )
-    
-    if not chunks:
-        raise HTTPException(
-            status_code=404,
-            detail="문제 생성을 위한 RAG 문서 chunk를 찾지 못했습니다. 먼저 PDF를 인덱싱하세요.",
-        )
-        
-    generated_questions = ai_service.generate_question_from_rag_chunks(
-        subject=request.subject,
-        chunks=chunks,
-        question_type=request.question_type,
-        difficulty=request.difficulty,
-        count=request.count,
-    )
-
-    target_material_id = (
-        request.material_id
-        or chunks[0]["metadata"].get("material_id")
-    )
-
-    material = (
-        db.query(models.StudyMaterial)
-        .filter(models.StudyMaterial.id == target_material_id)
-        .filter(models.StudyMaterial.user_id == current_user.id)
-        .filter(models.StudyMaterial.subject == request.subject)
-        .first()
-    )
-
-    if material is None:
-        raise HTTPException(
-            status_code=404,
-            detail="연결할 StudyMaterial을 찾지 못했습니다.",
-        )
-    
-    saved_questions = []
-        
-    for item in generated_questions:
-        question = models.Question(
-            material_id=material.id,
-            question_text=item.get("question", ""),
-            answer=item.get("answer", ""),
-            explanation=item.get("explanation", ""),
-            concept=item.get("concept", ""),
+    try:
+        result = question_service.generate_rag_questions(
+            db=db,
+            user_id=current_user.id,
+            user_name=current_user.user_name,
+            subject=request.subject,
+            material_id=request.material_id,
             question_type=request.question_type,
             difficulty=request.difficulty,
+            count=request.count,
+            top_k=request.top_k,
         )
-        
-        db.add(question)
-        db.commit()
-        db.refresh(question)
-        
-        saved_questions.append(
-            {
-                "id": question.id,
-                "question": question.question_text,
-                "answer": question.answer,
-                "explanation": question.explanation,
-                "concept": question.concept,
-                "question_type": question.question_type,
-                "difficulty": question.difficulty,
-                "source": item.get("source"),
-            }
-        )
-        
+    except ResourceNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="RAG 기반 예상문제 생성 중 오류가 발생했습니다.",
+        ) from exc
+
     return {
         "success": True,
         "message": "RAG 기반 예상문제가 생성되었습니다.",
-        "question_count": len(saved_questions),
-        "material_id": target_material_id,
-        "questions": saved_questions,
+        **result,
     }

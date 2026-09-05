@@ -1,4 +1,5 @@
-from app import models, rag_service, ai_service
+from app import models, rag_service
+from app.ai import question_ai
 
 
 def test_rag_index_users_authenticated_user(
@@ -159,7 +160,7 @@ def test_rag_question_generation_saves_question(
     )
     
     monkeypatch.setattr(
-        ai_service,
+        question_ai,
         "generate_question_from_rag_chunks",
         lambda **kwargs: [
             {

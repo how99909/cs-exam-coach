@@ -1,4 +1,5 @@
-from app import ai_service, models
+from app import models
+from app.ai import grading_ai
 
 
 def test_submit_exam_saves_attempt_answers_and_wrong_answer(
@@ -33,7 +34,7 @@ def test_submit_exam_saves_attempt_answers_and_wrong_answer(
     db.refresh(question)
     
     monkeypatch.setattr(
-        ai_service,
+        grading_ai,
         "grade_exam_answer",
         lambda **kwargs: {
             "is_correct": False,
