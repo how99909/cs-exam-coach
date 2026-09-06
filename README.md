@@ -2,9 +2,9 @@
 
 컴퓨터공학 전공 시험 대비를 위한 AI 문제 생성·채점·복습 관리 서비스입니다.
 
-- 제품 버전: **v4.6**
+- 제품 버전: **v4.7**
 - API 버전: **0.4.6**
-- 최근 주요 변경: 백엔드를 router·service·AI 도메인 모듈로 분리하고 입력 검증 및 서비스 테스트 강화
+- 최근 주요 변경: Streamlit 화면, API client, 인증 component와 session state를 기능별 모듈로 분리하고 프론트엔드 CI 추가
 
 ## 1. 프로젝트 소개
 
@@ -52,6 +52,15 @@ CS Exam Coach는 사용자가 직접 입력하거나 PDF에서 추출한 학습 
 - 공통 service 예외로 잘못된 요청, 리소스 없음, AI 응답 오류를 구분
 - 지표 계산을 공통 analytics service로 모아 홈·목표 대시보드, 리포트와 복습 기능에서 재사용
 - 기존 단일 `ai_service.py`와 RAG 피드백 CRUD 모듈의 책임을 세부 모듈로 이전
+
+### 프론트엔드 모듈 구조
+
+- `app.py`는 페이지 설정, 인증 확인, 탭 구성과 view 호출만 담당하는 진입점으로 축소
+- 홈, 문제, 자료, RAG, 시험, 학습, 리포트, 복습, 평가 화면을 `views/`의 기능별 모듈로 분리
+- 공통 `ApiClient`에서 API base URL, 기본 timeout, HTTP method와 JWT Bearer header 처리
+- 로그인·회원가입·토큰 검증 UI와 인증 API 호출을 component 및 API 모듈로 분리
+- 인증 session state의 초기화와 로그아웃 정리를 공통 상태 모듈에서 관리
+- 프론트엔드 소스 compile 검사와 API client 단위 테스트를 GitHub Actions에서 실행
 
 ### 문제 생성과 채점
 
@@ -104,6 +113,10 @@ CS Exam Coach는 사용자가 직접 입력하거나 PDF에서 추출한 학습 
 사용자
   ↓
 Streamlit Frontend (:8501)
+  ├─ App                  — 페이지 진입점과 탭 조합
+  ├─ Views                — 기능별 Streamlit 화면
+  ├─ Components           — 인증 등 공통 UI
+  └─ API client           — URL·timeout·JWT header 공통 처리
   ↓
 FastAPI Backend (:8000)
   ├─ Routers             — HTTP 요청·응답, 인증, 오류 변환
@@ -229,6 +242,19 @@ pytest -m "not postgres" --cov=app --cov-report=term-missing
 
 일반 테스트는 메모리 SQLite를 사용하며 테스트마다 스키마를 초기화합니다. 외부 OpenAI와 Chroma 동작은 테스트 대역을 사용하므로 별도 API key나 Chroma 서버가 필요하지 않습니다.
 
+### 프론트엔드 테스트
+
+프론트엔드 의존성을 설치하고 API client 테스트를 실행합니다.
+
+```bash
+cd frontend
+python -m pip install -r requirements-dev.txt
+python -m compileall .
+pytest -v
+```
+
+현재 프론트엔드 테스트는 JWT header 추가, 기존 header 보존, API URL과 GET 요청 전달을 검증합니다.
+
 ### PostgreSQL 및 Alembic 테스트
 
 로컬 테스트 DB를 시작합니다.
@@ -268,10 +294,13 @@ docker compose -f docker-compose.test.yml down
 | --- | --- | --- |
 | `unit-tests` | Ubuntu, Python 3.11 | PostgreSQL marker를 제외한 테스트 및 `app` 커버리지 출력 |
 | `postgres-tests` | Ubuntu, Python 3.11, PostgreSQL 16 | 실제 PostgreSQL에서 Alembic 마이그레이션 테스트 실행 |
+| `frontend-test` | Ubuntu, Python 3.11 | 프론트엔드 전체 소스 compile 검사 및 API client 테스트 실행 |
 
 ## 7. API 요약
 
 요청 필드, 허용 범위, 응답 모델의 최신 정의는 실행 중인 [Swagger UI](http://localhost:8000/docs)를 기준으로 확인하세요.
+
+제품 v4.7은 프론트엔드 구조를 변경한 릴리스이며 백엔드 API 버전은 v0.4.6으로 유지됩니다. 각 view는 문자열 URL과 인증 header를 직접 조합하지 않고 공통 `ApiClient`의 `get`, `post`, `patch`, `delete` method를 사용합니다. 기본 API timeout은 30초이며 AI·PDF 등 오래 걸리는 요청은 view에서 별도 timeout을 지정합니다.
 
 ### v0.4.6 API 변경 사항
 
@@ -538,7 +567,11 @@ Authorization: Bearer <access_token>
 - 요청 속도 제한, 백그라운드 작업 큐, 중앙 로그, 모니터링과 장애 알림이 없습니다.
 - 자동 테스트는 인증·권한, 핵심 학습 흐름, RAG 서비스와 실제 PostgreSQL/Alembic 마이그레이션을 다루지만 실제 OpenAI·Chroma 서버를 함께 연결한 통합 테스트와 브라우저 E2E 테스트는 없습니다.
 - CI는 커버리지 보고서를 터미널에 출력하지만 최소 커버리지 기준을 강제하거나 결과물을 artifact로 보관하지 않습니다.
-- 현재 GitHub Actions는 백엔드만 검사하며 프론트엔드 정적 분석·테스트와 Docker 이미지 빌드는 포함하지 않습니다.
+- GitHub Actions는 프론트엔드 compile 검사와 API client 단위 테스트를 실행하지만 Streamlit view·component의 상호작용 테스트와 브라우저 E2E 테스트는 포함하지 않습니다.
+- 프론트엔드 CI에는 최소 커버리지 기준, formatter·linter·type checker와 Docker 이미지 빌드 검증이 없습니다.
+- `ApiClient`는 공통 URL, timeout과 인증 header를 제공하지만 오류 응답을 공통 예외로 변환하지 않습니다. 각 view가 HTTP 상태 코드와 응답 본문을 개별 처리합니다.
+- 인증 정보와 화면 데이터는 Streamlit session state에만 보관되므로 세션이 초기화되면 로그인 상태와 임시 화면 데이터가 사라집니다.
+- 화면은 기능별 파일로 분리되었지만 단일 페이지의 23개 탭을 한 번에 구성하므로 기능이 더 늘어나면 탐색 구조를 별도로 개선해야 합니다.
 - service 계층은 router에서 분리되었지만 SQLAlchemy session, ORM model 및 일부 외부 서비스 모듈에 직접 의존하므로 독립 배포 가능한 별도 서비스는 아닙니다.
 - HTTP 오류 변환은 각 router가 담당하므로 새로운 service 예외를 추가할 때 해당 router의 상태 코드 매핑도 함께 갱신해야 합니다.
 - 날짜·시간은 timezone 정보가 없는 UTC 값으로 저장되므로 사용자별 시간대 표시는 별도 처리가 필요합니다.
@@ -571,8 +604,16 @@ cs-exam-coach/
 │  ├─ pytest.ini            # pytest 경로, 옵션과 marker 설정
 │  └─ requirements-dev.txt  # 테스트·커버리지 의존성
 ├─ frontend/
-│  └─ app.py                # Streamlit UI
-├─ .github/workflows/ci.yml # 백엔드 GitHub Actions CI
+│  ├─ api/                  # 공통 HTTP client와 인증 API
+│  ├─ components/           # 인증 사이드바 등 공통 UI
+│  ├─ views/                # 기능별 Streamlit 화면
+│  ├─ tests/                # 프론트엔드 API client 테스트
+│  ├─ app.py                # Streamlit 진입점과 탭 구성
+│  ├─ config.py             # API URL과 기본 timeout
+│  ├─ state.py              # session state 초기화·정리
+│  ├─ pytest.ini            # 프론트엔드 pytest 설정
+│  └─ requirements-dev.txt  # 프론트엔드 테스트 의존성
+├─ .github/workflows/ci.yml # 백엔드·프론트엔드 GitHub Actions CI
 ├─ docker-compose.test.yml  # PostgreSQL 16 테스트 DB
 ├─ docs/images/             # README 화면 이미지
 └─ docker-compose.yml

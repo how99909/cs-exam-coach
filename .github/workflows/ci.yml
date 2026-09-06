@@ -1,4 +1,4 @@
-name: Backend CI
+name: CI
 
 on:
   push:
@@ -104,3 +104,38 @@ jobs:
       - name: Run PostgreSQL migration tests
         run: |
           pytest -m postgres -v
+
+  
+  frontend-test:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            frontend/requirements.txt
+            frontend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Compile frontend
+        run: |
+          python -m compileall .
+
+      - name: Run frontend tests
+        run: |
+          pytest -v
