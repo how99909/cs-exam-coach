@@ -629,7 +629,7 @@ def render_study_checklists(
             st.error("체크리스트를 불러오지 못했습니다.")
             st.write(response.text)
             
-    if "checklist_item" not in st.session_state:
+    if "checklist_items" not in st.session_state:
         st.session_state.checklist_items = []
         
     if "checklist_progress" in st.session_state:
@@ -665,7 +665,7 @@ def render_study_checklists(
                 key=f"save_checklist_{item['id']}",
             ): 
                 response = api.patch(
-                    "/study-checklists/{item['id']}",
+                    f"/study-checklists/{item['id']}",
                     json={
                         "is_done": new_done,
                     },

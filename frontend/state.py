@@ -14,6 +14,7 @@ def init_session_state() -> None:
             
             
 def clear_auth_state() -> None:
-    st.session_state.access_token = None
-    st.session_state.validated_access_token = None
-    st.session_state.user_name = "default_user"
+    # Cached documents, answers and widget values belong to the signed-in user.
+    for key in list(st.session_state):
+        del st.session_state[key]
+    init_session_state()

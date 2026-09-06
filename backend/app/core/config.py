@@ -21,7 +21,9 @@ class Settings:
         "text-embedding-3-small",
     )
     
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "Paa943Lg4vXXMy74SL97DhX7qzkYun3T97lnjMoKRxS")
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "").strip()
+    if not JWT_SECRET_KEY or JWT_SECRET_KEY == "replace-with-a-long-random-secret":
+        raise ValueError("JWT_SECRET_KEY must be configured with a random secret.")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
         os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "1440")

@@ -11,9 +11,6 @@ def validate_session() -> None:
     if not token:
         return
     
-    if st.session_state.validated_access_token == token:
-        return
-    
     try:
         response = auth_api.get_me(token)
         
@@ -32,8 +29,12 @@ def validate_session() -> None:
         
         return
     
-    clear_auth_state()
-    st.rerun()
+    if response.status_code in (401, 403):
+        clear_auth_state()
+        st.rerun()
+
+    st.error("인증 서버 오류입니다. 잠시 후 다시 시도하세요.")
+    st.stop()
     
     
 def render_auth_sidebar() -> None:

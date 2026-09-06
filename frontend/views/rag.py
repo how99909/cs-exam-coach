@@ -177,10 +177,10 @@ def render_rag_qa(api):
             response = api.post(
                 "/rag-feedback/answer",
                 json={
-                    "subject": st.session_state.subject,
-                    "material_id": st.session_state.material_id,
-                    "question": st.session_state.question,
-                    "answer": st.session_state.answer,
+                    "subject": st.session_state.last_rag_subject,
+                    "material_id": st.session_state.last_rag_material_id,
+                    "question": st.session_state.last_rag_question,
+                    "answer": st.session_state.last_rag_answer,
                     "accuracy_score": accuracy_score,
                     "grounding_score": grounding_score,
                     "source_relevance_score": source_relevance_score,
